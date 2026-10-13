@@ -4,10 +4,12 @@ import com.library.library_management_system.BookRepository.BookRepository;
 import com.library.library_management_system.dto.BookRequest;
 import com.library.library_management_system.dto.BookResponse;
 import com.library.library_management_system.entity.Book;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.data.domain.Pageable;
 @Service
 public class BookService {
 
@@ -37,8 +39,21 @@ public class BookService {
         return toResponse(book);
     }
 
-    //Update an Existing Book
+//    Get All Books using pagination and sorting
+    public Page<BookResponse> getAllBooks(Pageable pageable) {
+        return bookRepository.findAll(pageable)
+                .map(this::toResponse);
+    }
 
+//    Serching method
+    public Page<BookResponse> searchBook(String search, Pageable pageable){
+        return bookRepository
+                .findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(search,search,pageable)
+                .map(this::toResponse);
+    }
+
+
+    //Update an Existing Book
     public BookResponse updateBook(Long bookId, BookRequest request){
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"Book Not Found With These ID :"+bookId));
@@ -73,7 +88,7 @@ public class BookService {
 
     }
 
-//    Delete a Book by id
+    //    Delete a Book by id
 
     public void deleteBookById(long bookId){
         Book book = bookRepository.findById(bookId)
