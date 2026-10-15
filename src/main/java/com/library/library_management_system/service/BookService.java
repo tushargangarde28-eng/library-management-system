@@ -24,7 +24,8 @@ public class BookService {
 
     public BookResponse createBook(BookRequest request){
         if(bookRepository.existsByIsbn(request.getIsbn())){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,"A Book With these ISBN is already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A Book With these ISBN is already exists");
         }
 
         Book book = toEntity(request);
@@ -35,7 +36,8 @@ public class BookService {
     //Get a book by its id
     public BookResponse getBookById(Long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"Book Not Found With These ID :"+bookId));
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Book Not Found With These ID :"+bookId));
         return toResponse(book);
     }
 
@@ -56,7 +58,8 @@ public class BookService {
     //Update an Existing Book
     public BookResponse updateBook(Long bookId, BookRequest request){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,"Book Not Found With These ID :"+bookId));
+                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Book Not Found With These ID :"+bookId));
 
 
         boolean isbnBelongstoAnotherBook = bookRepository.existsByIsbn(request.getIsbn())
@@ -64,7 +67,8 @@ public class BookService {
 
 
         if(isbnBelongstoAnotherBook){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,"A Book With these Isbn is already exists");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A Book With these Isbn is already exists");
         }
 
         int barrowedCopies = book.getTotalCopies() - book.getAvailable_Copies();
@@ -92,7 +96,8 @@ public class BookService {
 
     public void deleteBookById(long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not Found With These ID: "+bookId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Book not Found With These ID: "+bookId));
 
         bookRepository.delete(book);
     }
