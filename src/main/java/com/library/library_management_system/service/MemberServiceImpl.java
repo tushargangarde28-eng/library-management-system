@@ -1,12 +1,14 @@
 package com.library.library_management_system.service;
 
 
-import com.library.library_management_system.BookRepository.MemberRepository;
+import com.library.library_management_system.repository.MemberRepository;
 import com.library.library_management_system.dto.member.MemberRequest;
 import com.library.library_management_system.dto.member.MemberResponse;
 import com.library.library_management_system.entity.Member;
 import com.library.library_management_system.exception.DuplicateResourceException;
 import com.library.library_management_system.exception.ResourceNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +24,7 @@ public class MemberServiceImpl implements MemberService {
 
     }
 
+    // Crete Member
     @Override
     public MemberResponse createMember(MemberRequest request){
 
@@ -55,12 +58,12 @@ public class MemberServiceImpl implements MemberService {
         return response;
     }
 
+    // Get Member By ID
     @Override
     public MemberResponse getMemberById(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Member not found with Id "+memberId));
-
         MemberResponse response = new MemberResponse();
         response.setMemberId(member.getMemberId());
         response.setName(member.getName());
@@ -71,11 +74,41 @@ public class MemberServiceImpl implements MemberService {
         response.setCreatedAt(member.getCreatedAt());
         response.setUpdatedAt(member.getUpdatedAt());
 
-
         return response;
 
     }
 
+
+    @Override
+    public Page<MemberResponse> getAllMembers(Pageable pageable){
+        return memberRepository.findAll(pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    public Page<MemberResponse> searchMember(String search, Pageable pageable){
+        return memberRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search,pageable)
+                .map(this::toResponse);
+    }
+
+    @Override
+    public Page<MemberResponse> getMemberByStatus(String status, Pageable pageable){
+
+        Member.Status memberStatus;
+
+        try {
+            memberStatus = Member.Status.valueOf(status.toUpperCase());
+        }catch (IllegalArgumentException | NullPointerException ex){
+            throw new IllegalArgumentException(
+                    "Invalid status. Allowed values : ACTIVE , INACTIVE"
+            );
+        }
+        return memberRepository.findByStatus(memberStatus,pageable)
+                .map(this::toResponse);
+
+    }
+
+    // Update Member 
     @Override
     public MemberResponse updateMember(Long memberId, MemberRequest request) {
 
@@ -83,12 +116,6 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Member not found with Id "+memberId));
 
-        if (!member.getEmail().equalsIgnoreCase(request.getEmail())
-        && memberRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException(
-                    "Member with these email already exists"
-            );
-        }
 
             member.setName(request.getName());
             member.setPhone(request.getPhone());
@@ -108,9 +135,39 @@ public class MemberServiceImpl implements MemberService {
             return response;
     }
 
+
+    // Delete Member by Id
     @Override
     public MemberResponse deactivateMember(Long memberId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+
+            Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Member not found with Id "+memberId));
+
+            member.setStatus(Member.Status.INACTIVE);
+
+            Member updateMember = memberRepository.save(member);
+
+        MemberResponse response = new MemberResponse();
+
+        response.setStatus(updateMember.getStatus().name());
+        response.setUpdatedAt(updateMember.getUpdatedAt());
+        return response;
+    }
+
+    private MemberResponse toResponse(Member member) {
+        MemberResponse response = new MemberResponse();
+
+        response.setMemberId(member.getMemberId());
+        response.setName(member.getName());
+        response.setEmail(member.getEmail());
+        response.setPhone(member.getPhone());
+        response.setRole(member.getRole().name());
+        response.setStatus(member.getStatus().name());
+        response.setCreatedAt(member.getCreatedAt());
+        response.setUpdatedAt(member.getUpdatedAt());
+
+        return response;
     }
 
 }
