@@ -27,7 +27,7 @@ public class Book {
     private Integer totalCopies;
 
     @Column(name = "available_copies",nullable = false)
-    private Integer available_Copies;
+    private Integer availableCopies;
 
     public Book(){
 
@@ -73,11 +73,12 @@ public class Book {
         this.totalCopies = totalCopies;
     }
 
-    public Integer getAvailable_Copies() {
-        return available_Copies;
+    public Integer getAvailableCopies() {
+        return availableCopies;
     }
 
-    public void setAvailable_Copies(Integer available_Copies) {
-        this.available_Copies = available_Copies;
+    public void setAvailableCopies(Integer availableCopies) {
+        this.availableCopies = availableCopies;
     }
 }
+

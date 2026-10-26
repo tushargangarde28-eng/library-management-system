@@ -1,6 +1,6 @@
 package com.library.library_management_system.service;
 
-import com.library.library_management_system.BookRepository.BookRepository;
+import com.library.library_management_system.repository.BookRepository;
 import com.library.library_management_system.dto.BookRequest;
 import com.library.library_management_system.dto.BookResponse;
 import com.library.library_management_system.entity.Book;
@@ -57,6 +57,7 @@ public class BookService {
 
     //Update an Existing Book
     public BookResponse updateBook(Long bookId, BookRequest request){
+
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Book Not Found With These ID :"+bookId));
@@ -71,7 +72,9 @@ public class BookService {
                     "A Book With these Isbn is already exists");
         }
 
-        int barrowedCopies = book.getTotalCopies() - book.getAvailable_Copies();
+
+
+        int barrowedCopies = book.getTotalCopies() - book.getAvailableCopies();
 
         if (request.getTotalCopies() < barrowedCopies) {
             throw  new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -81,10 +84,12 @@ public class BookService {
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setIsbn(request.getIsbn());
+
         book.setTotalCopies(request.getTotalCopies());
 
-        //Preserve the Number of Book Copies
-        book.setAvailable_Copies(request.getTotalCopies() - barrowedCopies);
+        book.setAvailableCopies(
+                request.getTotalCopies() - barrowedCopies
+        );
 
         Book updatedBook = bookRepository.save(book);
 
@@ -110,7 +115,7 @@ public class BookService {
         book.setIsbn(request.getIsbn());
         book.setTotalCopies(request.getTotalCopies());
 
-        book.setAvailable_Copies(request.getTotalCopies());
+        book.setAvailableCopies(request.getTotalCopies());
         return book;
     }
 
@@ -121,7 +126,7 @@ public class BookService {
                 book.getTitle(),
                 book.getAuthor(),
                 book.getIsbn(),
-                book.getAvailable_Copies(),
+                book.getAvailableCopies(),
                 book.getTotalCopies()
         );
     }

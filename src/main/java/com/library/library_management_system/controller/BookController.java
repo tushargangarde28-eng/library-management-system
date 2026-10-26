@@ -70,7 +70,7 @@ public class BookController {
 
     // Update an Existing Book
     @PutMapping("/{id}")
-    public ResponseEntity<BookResponse> updateBook(@Valid @PathVariable Long id,@Valid @RequestBody BookRequest request){
+    public ResponseEntity<BookResponse> updateBook(@PathVariable Long id,@Valid @RequestBody BookRequest request){
         BookResponse bookResponse = bookService.updateBook(id,request);
 
         return ResponseEntity.ok(bookResponse);
@@ -80,8 +80,8 @@ public class BookController {
     //Delete Existing Book
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id){
-        bookService.deleteBookById(id);
 
+        bookService.deleteBookById(id);
         return ResponseEntity.noContent().build();
 
     }

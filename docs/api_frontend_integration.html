@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Library Management System - Frontend & API Integration Documentation</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 14mm 16mm 14mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.55;
+      color: #0f172a;
+      background-color: #ffffff;
+    }
+
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      page-break-after: avoid;
+    }
+
+    .header-banner {
+      border-bottom: 2px solid #4f46e5;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+
+    .system-title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #1e1b4b;
+      letter-spacing: -0.02em;
+    }
+
+    .system-subtitle {
+      font-size: 11pt;
+      color: #4f46e5;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .meta-grid {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: 8.5pt;
+      color: #475569;
+    }
+
+    .meta-item strong {
+      color: #0f172a;
+    }
+
+    h2 {
+      font-size: 13pt;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      color: #1e293b;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    p {
+      margin-bottom: 8px;
+      color: #334155;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+
+    .badge-get { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .badge-post { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-put { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .badge-delete { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .badge-info { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      margin-bottom: 14px;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 700;
+      text-align: left;
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    td {
+      padding: 6px 10px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    /* Code & Callouts */
+    code {
+      font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+      font-size: 8pt;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+      font-size: 7.8pt;
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 6px;
+      margin-bottom: 10px;
+      line-height: 1.45;
+      page-break-inside: avoid;
+    }
+
+    .card {
+      border: 1px solid #e2e8f0;
+      border-left: 3.5px solid #4f46e5;
+      background-color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 4px;
+      margin-top: 8px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 9pt;
+      color: #1e1b4b;
+      margin-bottom: 3px;
+    }
+
+    .diagram-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 7.5pt;
+      line-height: 1.35;
+      margin: 10px 0;
+      page-break-inside: avoid;
+      white-space: pre;
+    }
+
+    .api-endpoint {
+      margin-top: 14px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed #cbd5e1;
+      page-break-inside: avoid;
+    }
+
+    .api-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .api-url {
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 700;
+      font-size: 9.5pt;
+      color: #0f172a;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header-banner">
+    <div class="system-title">LibriCore — Library Management System</div>
+    <div class="system-subtitle">Frontend Architecture & REST API Integration Manual</div>
+    <div class="meta-grid">
+      <div class="meta-item"><strong>Frontend:</strong> React 19 + Vite 8</div>
+      <div class="meta-item"><strong>Backend:</strong> Spring Boot 4.1 + Java 21</div>
+      <div class="meta-item"><strong>Proxy Port:</strong> 5173 &rarr; 8080</div>
+      <div class="meta-item"><strong>Date:</strong> October 2026</div>
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2>1. Architectural Overview & Network Flow</h2>
+  <p>
+    The LibriCore client is built as a single-page application using React 19 and Vite. The backend is an existing Spring Boot REST service running on port 8080.
+    Because the backend does not configure Cross-Origin Resource Sharing (CORS), direct browser calls to port 8080 would be blocked.
+    To connect seamlessly <strong>without altering any backend Java code</strong>, a reverse proxy was implemented in Vite:
+  </p>
+
+  <div class="diagram-box">
+Browser (React UI)
+  │ (User actions on DashboardPage, BooksPage, MembersPage)
+  ▼
+Service Layer (bookService.js &amp; memberService.js)
+  │ (Field normalization, backend param adaptation, validation)
+  ▼
+API Client (api/client.js)
+  │ (Fetch wrapper, JSON serialization, console error logger)
+  ▼
+Vite Dev Proxy (Port 5173)
+  │ Maps: /api/*  ──►  http://localhost:8080/api/* (Zero CORS errors)
+  ▼
+Spring Boot REST Controllers (Port 8080)
+  (BookController.java &amp; MemberController.java)
+  </div>
+
+  <div class="card">
+    <div class="card-title">Vite Reverse Proxy Configuration (vite.config.js)</div>
+    Requests sent to <code>/api/*</code> on the local dev server are forwarded by Vite to <code>http://localhost:8080/api/*</code>.
+    The browser interacts only with same-origin port 5173, completely bypassing browser CORS restrictions.
+  </div>
+
+  <!-- Section 2 -->
+  <h2>2. Critical Backend Nuances & Frontend Normalization</h2>
+  <ul>
+    <li>
+      <strong>Field Inversion in <code>BookService.toResponse()</code>:</strong><br>
+      In <code>BookService.java</code> (lines 119-126), the constructor arguments for <code>totalCopies</code> and <code>availableCopies</code> are passed swapped.
+      The frontend service layer (<code>bookService.normalizeBook()</code>) automatically restores semantic accuracy so the UI always reflects true stock availability.
+    </li>
+    <li>
+      <strong>Sort Parameter declarations in <code>MemberController.java</code>:</strong><br>
+      The member controller declares <code>@RequestParam String shortBy</code> (spelled with an 'h'). The frontend adapter <code>memberService.js</code> transparently maps standard <code>sortBy</code> calls to <code>shortBy</code>.
+    </li>
+    <li>
+      <strong>Error Diagnostics:</strong><br>
+      All network timeouts and HTTP errors (400, 404, 409, 500) are automatically formatted and printed to <code>console.error</code> with full payload context for real-time debugging.
+    </li>
+  </ul>
+
+  <!-- Page Break for Clean API listings -->
+  <div class="page-break"></div>
+
+  <!-- Section 3 -->
+  <h2>3. Book Management APIs (BookController.java)</h2>
+
+  <!-- API 1 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-get">GET</span>
+      <span class="api-url">/api/books</span>
+      <span class="badge badge-info">Page&lt;BookResponse&gt;</span>
+    </div>
+    <p><strong>Purpose:</strong> Fetches paginated book catalog records with sorting and search filtering.</p>
+    <table>
+      <tr>
+        <th style="width: 25%;">Parameter</th>
+        <th style="width: 20%;">Type</th>
+        <th>Description</th>
+      </tr>
+      <tr><td><code>page</code></td><td>Integer (default 0)</td><td>Zero-indexed page number</td></tr>
+      <tr><td><code>size</code></td><td>Integer (default 10)</td><td>Number of records per page (5, 10, 20, 50)</td></tr>
+      <tr><td><code>sortBy</code></td><td>String (default "bookId")</td><td>Column: <code>bookId</code>, <code>title</code>, <code>author</code>, <code>isbn</code></td></tr>
+      <tr><td><code>direction</code></td><td>String (default "asc")</td><td>Sort order: <code>asc</code> or <code>desc</code></td></tr>
+      <tr><td><code>search</code></td><td>String (optional)</td><td>Filters by book title or author (case-insensitive)</td></tr>
+    </table>
+    <p><strong>Frontend Function:</strong> <code>bookService.getBooks({ page, size, sortBy, direction, search })</code> in <code>src/api/bookService.js</code></p>
+    <p><strong>UI Component:</strong> <code>BooksPage.jsx</code> (data table &amp; pagination) and <code>DashboardPage.jsx</code> (KPI metrics &amp; highlights).</p>
+  </div>
+
+  <!-- API 2 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-get">GET</span>
+      <span class="api-url">/api/books/{id}</span>
+      <span class="badge badge-info">BookResponse</span>
+    </div>
+    <p><strong>Purpose:</strong> Retrieves detailed metadata for a single catalog record by ID.</p>
+    <p><strong>Frontend Function:</strong> <code>bookService.getBookById(id)</code></p>
+  </div>
+
+  <!-- API 3 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-post">POST</span>
+      <span class="api-url">/api/books</span>
+      <span class="badge badge-info">Status: 201 Created</span>
+    </div>
+    <p><strong>Purpose:</strong> Creates and registers a new book title in the library database.</p>
+    <p><strong>Request Body (BookRequest):</strong></p>
+    <pre>{
+  "title": "Clean Code",
+  "author": "Robert C. Martin",
+  "isbn": "978-0132350884",
+  "totalCopies": 5
+}</pre>
+    <p><strong>Validation &amp; Error Handling:</strong> Returns <code>409 Conflict</code> if the ISBN already exists. The frontend captures this and renders an inline warning banner.</p>
+    <p><strong>Frontend Function:</strong> <code>bookService.createBook(bookData)</code> invoked from <code>BookFormModal.jsx</code>.</p>
+  </div>
+
+  <!-- API 4 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-put">PUT</span>
+      <span class="api-url">/api/books/{id}</span>
+      <span class="badge badge-info">Status: 200 OK</span>
+    </div>
+    <p><strong>Purpose:</strong> Updates an existing book title, author, ISBN, or stock count.</p>
+    <p><strong>Frontend Function:</strong> <code>bookService.updateBook(id, bookData)</code> invoked from <code>BookFormModal.jsx</code>.</p>
+  </div>
+
+  <!-- API 5 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-delete">DELETE</span>
+      <span class="api-url">/api/books/{id}</span>
+      <span class="badge badge-info">Status: 204 No Content</span>
+    </div>
+    <p><strong>Purpose:</strong> Permanently deletes a book from the catalog.</p>
+    <p><strong>Frontend Function:</strong> <code>bookService.deleteBook(id)</code> invoked from <code>DeleteBookModal.jsx</code>.</p>
+  </div>
+
+  <!-- Page Break for Members APIs -->
+  <div class="page-break"></div>
+
+  <!-- Section 4 -->
+  <h2>4. Member Directory APIs (MemberController.java)</h2>
+
+  <!-- API 6 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-get">GET</span>
+      <span class="api-url">/api/members</span>
+      <span class="badge badge-info">Page&lt;MemberResponse&gt;</span>
+    </div>
+    <p><strong>Purpose:</strong> Fetches patron records filtered by account status (<code>ACTIVE</code> / <code>INACTIVE</code>) or search query.</p>
+    <table>
+      <tr>
+        <th style="width: 25%;">Parameter</th>
+        <th style="width: 20%;">Type</th>
+        <th>Description</th>
+      </tr>
+      <tr><td><code>page</code></td><td>Integer (default 0)</td><td>Zero-indexed page number</td></tr>
+      <tr><td><code>size</code></td><td>Integer (default 10)</td><td>Records per page</td></tr>
+      <tr><td><code>shortBy</code></td><td>String (default "memberId")</td><td>Declared as <code>shortBy</code> with an 'h' in backend</td></tr>
+      <tr><td><code>direction</code></td><td>String (default "0")</td><td>Sort order: <code>asc</code> or <code>desc</code></td></tr>
+      <tr><td><code>status</code></td><td>String (default "ACTIVE")</td><td>Account status: <code>ACTIVE</code> or <code>INACTIVE</code></td></tr>
+      <tr><td><code>search</code></td><td>String (optional)</td><td>Matches patron name or email address</td></tr>
+    </table>
+    <p><strong>Frontend Function:</strong> <code>memberService.getMembers({ page, size, sortBy, direction, search, status })</code> in <code>src/api/memberService.js</code></p>
+    <p><strong>UI Component:</strong> Powers status tabs and data table in <code>MembersPage.jsx</code>.</p>
+  </div>
+
+  <!-- API 7 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-get">GET</span>
+      <span class="api-url">/api/members/{id}</span>
+      <span class="badge badge-info">MemberResponse</span>
+    </div>
+    <p><strong>Purpose:</strong> Retrieves specific patron account details by member ID.</p>
+    <p><strong>Frontend Function:</strong> <code>memberService.getMemberById(id)</code></p>
+  </div>
+
+  <!-- API 8 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-post">POST</span>
+      <span class="api-url">/api/members</span>
+      <span class="badge badge-info">Status: 201 Created</span>
+    </div>
+    <p><strong>Purpose:</strong> Registers a new patron account with credentials.</p>
+    <p><strong>Request Body (MemberRequest):</strong></p>
+    <pre>{
+  "name": "Ankita Zade",
+  "email": "ankita@example.com",
+  "phone": "8080976977",
+  "password": "SecurePassword123"
+}</pre>
+    <p><strong>Security Note:</strong> Password must be between 8 and 72 characters. The backend hashes passwords using BCrypt prior to database persistence.</p>
+    <p><strong>Frontend Function:</strong> <code>memberService.createMember(memberData)</code> in <code>MemberFormModal.jsx</code>.</p>
+  </div>
+
+  <!-- API 9 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-put">PUT</span>
+      <span class="api-url">/api/members/{id}</span>
+      <span class="badge badge-info">Status: 200 OK</span>
+    </div>
+    <p><strong>Purpose:</strong> Updates a patron's full name and contact phone number. Email address remains immutable.</p>
+    <p><strong>Frontend Function:</strong> <code>memberService.updateMember(id, memberData)</code> in <code>MemberFormModal.jsx</code>.</p>
+  </div>
+
+  <!-- API 10 -->
+  <div class="api-endpoint">
+    <div class="api-header">
+      <span class="badge badge-delete">DELETE</span>
+      <span class="api-url">/api/members/{id}</span>
+      <span class="badge badge-info">Status: 200 OK</span>
+    </div>
+    <p><strong>Purpose:</strong> Soft-deactivates a patron account by setting <code>status = INACTIVE</code>.</p>
+    <p><strong>Frontend Function:</strong> <code>memberService.deactivateMember(id)</code> in <code>DeactivateMemberModal.jsx</code>.</p>
+  </div>
+
+  <!-- Page Break for Summary & Dashboard -->
+  <div class="page-break"></div>
+
+  <!-- Section 5 -->
+  <h2>5. Dashboard Real-Time Metric Aggregation</h2>
+  <p>
+    Because dedicated report endpoints (e.g. <code>/api/reports/*</code>) are not yet implemented in the backend, the Admin Dashboard calculates real-time metrics dynamically by executing parallel asynchronous requests via <code>Promise.all</code>:
+  </p>
+  <pre>const [booksData, activeMembersData, inactiveMembersData] = await Promise.all([
+  bookService.getBooks({ page: 0, size: 8, sortBy: 'bookId', direction: 'desc' }),
+  memberService.getMembers({ page: 0, size: 8, status: 'ACTIVE' }),
+  memberService.getMembers({ page: 0, size: 1, status: 'INACTIVE' })
+]);</pre>
+
+  <p><strong>Computed Metrics on Dashboard:</strong></p>
+  <ul>
+    <li><strong>Total Book Titles:</strong> Derived from <code>booksData.totalElements</code>.</li>
+    <li><strong>Total Physical Stock:</strong> Sum of <code>totalCopies</code> across catalog volumes.</li>
+    <li><strong>Available Inventory:</strong> Sum of shelf-available copies (<code>availableCopies</code>).</li>
+    <li><strong>Circulating / Borrowed:</strong> Calculated as <code>Total Physical Stock - Available Inventory</code>.</li>
+    <li><strong>Inventory Health Ratio:</strong> <code>(Available Copies / Total Copies) * 100%</code> rendered in dual-color progress bar.</li>
+    <li><strong>Active vs. Inactive Accounts:</strong> Extracted from <code>activeMembersData.totalElements</code> and <code>inactiveMembersData.totalElements</code>.</li>
+  </ul>
+
+  <!-- Section 6 -->
+  <h2>6. Summary API Mapping Reference Table</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Action</th>
+        <th>Method &amp; Path</th>
+        <th>Service Function</th>
+        <th>React Component</th>
+        <th>Backend Controller</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dashboard KPIs</td>
+        <td><code>GET /api/books</code> &amp; <code>GET /api/members</code></td>
+        <td><code>bookService.getBooks</code> &amp; <code>memberService.getMembers</code></td>
+        <td><code>DashboardPage.jsx</code></td>
+        <td><code>BookController</code> &amp; <code>MemberController</code></td>
+      </tr>
+      <tr>
+        <td>List / Search Books</td>
+        <td><code>GET /api/books</code></td>
+        <td><code>bookService.getBooks()</code></td>
+        <td><code>BooksPage.jsx</code></td>
+        <td><code>BookController.getAllBooks</code></td>
+      </tr>
+      <tr>
+        <td>Add New Book</td>
+        <td><code>POST /api/books</code></td>
+        <td><code>bookService.createBook()</code></td>
+        <td><code>BookFormModal.jsx</code></td>
+        <td><code>BookController.createBook</code></td>
+      </tr>
+      <tr>
+        <td>Update Book</td>
+        <td><code>PUT /api/books/{id}</code></td>
+        <td><code>bookService.updateBook()</code></td>
+        <td><code>BookFormModal.jsx</code></td>
+        <td><code>BookController.updateBook</code></td>
+      </tr>
+      <tr>
+        <td>Delete Book</td>
+        <td><code>DELETE /api/books/{id}</code></td>
+        <td><code>bookService.deleteBook()</code></td>
+        <td><code>DeleteBookModal.jsx</code></td>
+        <td><code>BookController.deleteBook</code></td>
+      </tr>
+      <tr>
+        <td>List / Filter Members</td>
+        <td><code>GET /api/members</code></td>
+        <td><code>memberService.getMembers()</code></td>
+        <td><code>MembersPage.jsx</code></td>
+        <td><code>MemberController.getAllMembers</code></td>
+      </tr>
+      <tr>
+        <td>Register Member</td>
+        <td><code>POST /api/members</code></td>
+        <td><code>memberService.createMember()</code></td>
+        <td><code>MemberFormModal.jsx</code></td>
+        <td><code>MemberController.createMember</code></td>
+      </tr>
+      <tr>
+        <td>Update Member Profile</td>
+        <td><code>PUT /api/members/{id}</code></td>
+        <td><code>memberService.updateMember()</code></td>
+        <td><code>MemberFormModal.jsx</code></td>
+        <td><code>MemberController.updateMember</code></td>
+      </tr>
+      <tr>
+        <td>Deactivate Account</td>
+        <td><code>DELETE /api/members/{id}</code></td>
+        <td><code>memberService.deactivateMember()</code></td>
+        <td><code>DeactivateMemberModal.jsx</code></td>
+        <td><code>MemberController.deleteMember</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
