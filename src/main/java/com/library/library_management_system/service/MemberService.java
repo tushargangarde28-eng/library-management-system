@@ -1,6 +1,8 @@
 
 package com.library.library_management_system.service;
 
+import com.library.library_management_system.dto.member.LoginRequest;
+import com.library.library_management_system.dto.member.LoginResponse;
 import com.library.library_management_system.dto.member.MemberRequest;
 import com.library.library_management_system.dto.member.MemberResponse;
 import com.library.library_management_system.entity.Member;
@@ -22,5 +24,7 @@ public interface MemberService {
     Page<MemberResponse> getAllMembers(Pageable pageable);
 
     Page<MemberResponse> getMemberByStatus(String status, Pageable pageable);
+
+    LoginResponse login(LoginRequest request);
 
 }
