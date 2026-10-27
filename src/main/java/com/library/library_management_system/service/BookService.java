@@ -1,6 +1,6 @@
 package com.library.library_management_system.service;
 
-import com.library.library_management_system.BookRepository.BookRepository;
+import com.library.library_management_system.repository.BookRepository;
 import com.library.library_management_system.dto.BookRequest;
 import com.library.library_management_system.dto.BookResponse;
 import com.library.library_management_system.entity.Book;
@@ -8,6 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.library.library_management_system.exception.BusinessRuleException;
+import com.library.library_management_system.exception.DuplicateResourceException;
+import com.library.library_management_system.exception.ResourceNotFoundException;
 
 import org.springframework.data.domain.Pageable;
 @Service
@@ -24,7 +28,7 @@ public class BookService {
 
     public BookResponse createBook(BookRequest request){
         if(bookRepository.existsByIsbn(request.getIsbn())){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new DuplicateResourceException(
                     "A Book With these ISBN is already exists");
         }
 
@@ -36,7 +40,7 @@ public class BookService {
     //Get a book by its id
     public BookResponse getBookById(Long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(()-> new ResourceNotFoundException(
                         "Book Not Found With These ID :"+bookId));
         return toResponse(book);
     }
@@ -57,8 +61,9 @@ public class BookService {
 
     //Update an Existing Book
     public BookResponse updateBook(Long bookId, BookRequest request){
+
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(()-> new ResourceNotFoundException(
                         "Book Not Found With These ID :"+bookId));
 
 
@@ -67,24 +72,29 @@ public class BookService {
 
 
         if(isbnBelongstoAnotherBook){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A Book With these Isbn is already exists");
+            throw new DuplicateResourceException(
+                    "A Book With these ISBN is already exists");
         }
 
-        int barrowedCopies = book.getTotalCopies() - book.getAvailable_Copies();
+
+
+        int barrowedCopies = book.getTotalCopies() - book.getAvailableCopies();
 
         if (request.getTotalCopies() < barrowedCopies) {
-            throw  new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Total copies is not less than barrowed copies");
+            throw new BusinessRuleException(
+                    "Total copies cannot be less than the number of borrowed copies."
+            );
         }
 
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         book.setIsbn(request.getIsbn());
+
         book.setTotalCopies(request.getTotalCopies());
 
-        //Preserve the Number of Book Copies
-        book.setAvailable_Copies(request.getTotalCopies() - barrowedCopies);
+        book.setAvailableCopies(
+                request.getTotalCopies() - barrowedCopies
+        );
 
         Book updatedBook = bookRepository.save(book);
 
@@ -96,7 +106,7 @@ public class BookService {
 
     public void deleteBookById(long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Book not Found With These ID: "+bookId));
 
         bookRepository.delete(book);
@@ -110,7 +120,7 @@ public class BookService {
         book.setIsbn(request.getIsbn());
         book.setTotalCopies(request.getTotalCopies());
 
-        book.setAvailable_Copies(request.getTotalCopies());
+        book.setAvailableCopies(request.getTotalCopies());
         return book;
     }
 
@@ -121,7 +131,7 @@ public class BookService {
                 book.getTitle(),
                 book.getAuthor(),
                 book.getIsbn(),
-                book.getAvailable_Copies(),
+                book.getAvailableCopies(),
                 book.getTotalCopies()
         );
     }
