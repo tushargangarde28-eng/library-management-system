@@ -2,6 +2,22 @@ import { apiClient } from './client';
 
 export const memberService = {
   /**
+   * Member authentication login endpoint
+   * Calls POST /api/members/login
+   * @param {Object} credentials - { email, password }
+   * @returns {Promise<Object>} { message, memberId, name, email, role, token }
+   */
+  async login(credentials) {
+    return await apiClient('/members/login', {
+      method: 'POST',
+      body: {
+        email: credentials.email?.trim(),
+        password: credentials.password,
+      },
+    });
+  },
+
+  /**
    * Fetch paginated list of members.
    * Handles backend parameter naming adaptation ('shortBy' in MemberController).
    */

@@ -1,12 +1,37 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu,
-  RefreshCw
+  RefreshCw,
+  LogOut,
+  User,
+  Shield,
+  ChevronDown
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Topbar({ onRefresh, isRefreshing, apiStatus, onMobileToggle }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   const getPageInfo = () => {
     switch (location.pathname) {
@@ -22,6 +47,20 @@ export default function Topbar({ onRefresh, isRefreshing, apiStatus, onMobileTog
   };
 
   const { title, subtitle } = getPageInfo();
+
+  // Compute display initials
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'AD';
+
+  const userRole = user?.role || 'ADMIN';
+  const userName = user?.name || 'Administrator';
+  const userEmail = user?.email || 'admin@library.com';
 
   return (
     <header
@@ -123,34 +162,112 @@ export default function Topbar({ onRefresh, isRefreshing, apiStatus, onMobileTog
 
         <div style={{ width: '1px', height: '22px', backgroundColor: 'var(--border-subtle)' }} />
 
-        {/* Admin Avatar Chip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} title="Logged in as Super Admin">
-          <div
+        {/* User Profile Dropdown */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setProfileOpen((prev) => !prev)}
             style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.8rem',
-              color: '#ffffff',
-              boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)',
-              flexShrink: 0,
+              gap: '8px',
+              padding: '4px 8px 4px 4px',
+              borderRadius: 'var(--radius-full)',
+              background: profileOpen ? 'var(--bg-surface-hover)' : 'transparent',
+              border: '1px solid',
+              borderColor: profileOpen ? 'var(--border-medium)' : 'transparent',
+              transition: 'all var(--transition-fast)',
+              cursor: 'pointer',
             }}
+            title={`Logged in as ${userName} (${userRole})`}
           >
-            AD
-          </div>
-          <div className="topbar-admin-details" style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-              Administrator
-            </span>
-            <span style={{ fontSize: '0.68rem', color: '#818cf8', fontWeight: 600 }}>
-              Super Admin
-            </span>
-          </div>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: userRole === 'ADMIN' 
+                  ? 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)' 
+                  : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                color: '#ffffff',
+                boxShadow: '0 2px 6px rgba(99, 102, 241, 0.3)',
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
+            <div className="topbar-admin-details" style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+              <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                {userName}
+              </span>
+              <span style={{ fontSize: '0.68rem', color: userRole === 'ADMIN' ? '#818cf8' : '#34d399', fontWeight: 600 }}>
+                {userRole}
+              </span>
+            </div>
+            <ChevronDown size={14} style={{ color: 'var(--text-muted)', marginLeft: '2px' }} />
+          </button>
+
+          {/* Floating Dropdown Menu */}
+          {profileOpen && (
+            <div
+              className="glass-card animate-fade-in"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '240px',
+                padding: '12px',
+                backgroundColor: 'var(--bg-surface-elevated)',
+                border: '1px solid var(--border-medium)',
+                boxShadow: 'var(--shadow-lg)',
+                borderRadius: 'var(--radius-md)',
+                zIndex: 60,
+              }}
+            >
+              <div style={{ paddingBottom: '10px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {userName}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {userEmail}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                  <span
+                    className={`badge ${userRole === 'ADMIN' ? 'badge-info' : 'badge-active'}`}
+                    style={{ fontSize: '0.68rem', padding: '2px 8px' }}
+                  >
+                    <Shield size={10} />
+                    {userRole}
+                  </span>
+                  {user?.memberId && (
+                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      ID #{user.memberId}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="btn btn-ghost"
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  color: 'var(--danger)',
+                  padding: '8px 10px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.825rem',
+                }}
+              >
+                <LogOut size={15} />
+                <span>Sign Out of Portal</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

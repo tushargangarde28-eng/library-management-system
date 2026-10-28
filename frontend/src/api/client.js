@@ -21,8 +21,10 @@ export async function apiClient(endpoint, { body, method, params, headers = {}, 
     }
   }
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('lms_auth_token') : null;
   const defaultHeaders = {
     'Accept': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...headers,
   };
 

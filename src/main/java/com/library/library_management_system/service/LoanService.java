@@ -5,6 +5,7 @@ import com.library.library_management_system.dto.loan.LoanResponse;
 import com.library.library_management_system.entity.Book;
 import com.library.library_management_system.entity.Loan;
 import com.library.library_management_system.entity.Member;
+import com.library.library_management_system.exception.BusinessRuleException;
 import com.library.library_management_system.exception.ResourceNotFoundException;
 import com.library.library_management_system.repository.BookRepository;
 import com.library.library_management_system.repository.LoanRepository;
@@ -20,7 +21,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.temporal.ChronoUnit;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class LoanService {
     private final LoanRepository loanRepository;
@@ -45,6 +47,9 @@ public class LoanService {
     @Value("${library.loan.fine-per-day}")
     private BigDecimal finePerDay;
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(LoanService.class);
+
     private Member getMemberOrThrow(Long memberId) {
 
         Member member = memberRepository.findById(memberId)
@@ -54,7 +59,7 @@ public class LoanService {
                         ));
 
         if (member.getStatus() != Member.Status.ACTIVE) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "Inactive member cannot borrow books."
             );
         }
@@ -74,7 +79,7 @@ public class LoanService {
         long activeLoans = loanRepository.countByMember_MemberIdAndStatus(memberId, Loan.Status.ACTIVE);
 
         if(activeLoans >= borrowingLimit ){
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "Member has reached the borrowing limit."
             );
         }
@@ -109,6 +114,7 @@ public class LoanService {
             loans = loanRepository.searchLoans(search.trim(), pageable);
         }
 
+        logger.info("Fetching loans with search keyword: {}", search);
         return loans.map(this::toLoanResponse);
     }
 
@@ -121,7 +127,7 @@ public class LoanService {
             int updateRows = bookRepository.decreaseAvailableCopies(book.getBookId());
 
             if (updateRows == 0 ) {
-                throw new IllegalStateException(
+                throw new BusinessRuleException(
                         "Book is not Available for Borrowing"
                 );
             }
@@ -134,6 +140,9 @@ public class LoanService {
                 loan.setStatus(Loan.Status.ACTIVE);
 
                 Loan savedLoan = loanRepository.save(loan);
+
+        logger.info("Processing book borrowing request for member ID: {} and book ID: {}",
+                request.getMemberId(), request.getBookId());
                 return toLoanResponse(savedLoan);
 
     }
@@ -153,7 +162,7 @@ public class LoanService {
         );
 
         if (updatedRows == 0) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                     "Book availability could not be updated."
             );
         }
@@ -163,7 +172,7 @@ public class LoanService {
         loan.setStatus(Loan.Status.RETURNED);
 
         Loan returnLoan = loanRepository.save(loan);
-
+        logger.info("Processing book return request for loan ID: {}", loanId);
         return toLoanResponse(returnLoan);
 
     }

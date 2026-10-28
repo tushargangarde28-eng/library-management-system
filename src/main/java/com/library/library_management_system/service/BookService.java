@@ -9,6 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.library.library_management_system.exception.BusinessRuleException;
+import com.library.library_management_system.exception.DuplicateResourceException;
+import com.library.library_management_system.exception.ResourceNotFoundException;
+
 import org.springframework.data.domain.Pageable;
 @Service
 public class BookService {
@@ -24,7 +28,7 @@ public class BookService {
 
     public BookResponse createBook(BookRequest request){
         if(bookRepository.existsByIsbn(request.getIsbn())){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new DuplicateResourceException(
                     "A Book With these ISBN is already exists");
         }
 
@@ -36,7 +40,7 @@ public class BookService {
     //Get a book by its id
     public BookResponse getBookById(Long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(()-> new ResourceNotFoundException(
                         "Book Not Found With These ID :"+bookId));
         return toResponse(book);
     }
@@ -59,7 +63,7 @@ public class BookService {
     public BookResponse updateBook(Long bookId, BookRequest request){
 
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(()-> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(()-> new ResourceNotFoundException(
                         "Book Not Found With These ID :"+bookId));
 
 
@@ -68,8 +72,8 @@ public class BookService {
 
 
         if(isbnBelongstoAnotherBook){
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "A Book With these Isbn is already exists");
+            throw new DuplicateResourceException(
+                    "A Book With these ISBN is already exists");
         }
 
 
@@ -77,8 +81,9 @@ public class BookService {
         int barrowedCopies = book.getTotalCopies() - book.getAvailableCopies();
 
         if (request.getTotalCopies() < barrowedCopies) {
-            throw  new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Total copies is not less than barrowed copies");
+            throw new BusinessRuleException(
+                    "Total copies cannot be less than the number of borrowed copies."
+            );
         }
 
         book.setTitle(request.getTitle());
@@ -101,7 +106,7 @@ public class BookService {
 
     public void deleteBookById(long bookId){
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Book not Found With These ID: "+bookId));
 
         bookRepository.delete(book);

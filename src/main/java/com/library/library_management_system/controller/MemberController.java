@@ -1,5 +1,7 @@
 package com.library.library_management_system.controller;
 
+import com.library.library_management_system.dto.member.LoginRequest;
+import com.library.library_management_system.dto.member.LoginResponse;
 import com.library.library_management_system.dto.member.MemberRequest;
 import com.library.library_management_system.dto.member.MemberResponse;
 import com.library.library_management_system.service.BookService;
@@ -21,6 +23,13 @@ public class MemberController {
 
     public MemberController(MemberService memberService){
         this.memberService = memberService;
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse>login(@RequestBody LoginRequest request){
+        LoginResponse response = memberService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     //Adding Member

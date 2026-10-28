@@ -1,6 +1,9 @@
 package com.library.library_management_system.service;
 
 
+import com.library.library_management_system.dto.member.LoginRequest;
+import com.library.library_management_system.dto.member.LoginResponse;
+import com.library.library_management_system.exception.BusinessRuleException;
 import com.library.library_management_system.repository.MemberRepository;
 import com.library.library_management_system.dto.member.MemberRequest;
 import com.library.library_management_system.dto.member.MemberResponse;
@@ -17,11 +20,46 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public MemberServiceImpl(MemberRepository memberRepository, PasswordEncoder passwordEncoder){
+    public MemberServiceImpl(MemberRepository memberRepository, PasswordEncoder passwordEncoder, JwtService jwtService){
         this.memberRepository = memberRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
 
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+
+        Member member = memberRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new BusinessRuleException("Invalid email or password"));
+
+        if (! passwordEncoder.matches(request.getPassword(),member.getPasswordHash())){
+            throw new BusinessRuleException("Invalid email or password");
+        }
+
+        if (member.getStatus() != Member.Status.ACTIVE){
+            throw new BusinessRuleException("Member account is inactive");
+        }
+
+        String token = jwtService.generateToken(
+                member.getEmail(),
+                member.getRole().name()
+        );
+
+
+        LoginResponse response = new LoginResponse();
+        response.setMessage("Login Successful");
+        response.setMemberId(member.getMemberId());
+        response.setName(member.getName());
+        response.setEmail(member.getEmail());
+        response.setRole(member.getRole().name());
+        response.setToken(token);
+
+
+        return response;
     }
 
     // Crete Member
@@ -30,7 +68,7 @@ public class MemberServiceImpl implements MemberService {
 
         if(memberRepository.existsByEmail(request.getEmail())){
             throw new DuplicateResourceException(
-                    "Member with This email elready exists"
+                    "Member with This email already exists"
             );
         }
 
@@ -79,11 +117,13 @@ public class MemberServiceImpl implements MemberService {
     }
 
 
+
     @Override
-    public Page<MemberResponse> getAllMembers(Pageable pageable){
-        return memberRepository.findAll(pageable)
+    public Page<MemberResponse> getAllMembers(Pageable pageable) {
+        return memberRepository.findByRole(Member.Role.STUDENT, pageable)
                 .map(this::toResponse);
     }
+
 
     @Override
     public Page<MemberResponse> searchMember(String search, Pageable pageable){
