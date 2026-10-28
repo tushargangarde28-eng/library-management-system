@@ -69,7 +69,10 @@ public class SecurityConfig {
                                 "/api/members/register",
                                 "/api/members/login",
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
                         ).permitAll()
 
                         // Books: ADMIN and STUDENT can read
@@ -84,7 +87,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/members/**")
                         .hasRole("ADMIN")
 
-                        // Loans: ADMIN and STUDENT
+                        // Loans: ADMIN and STUDENT can access loan endpoints
                         .requestMatchers("/api/loans/**")
                         .hasAnyRole("ADMIN", "STUDENT")
 
