@@ -1,6 +1,5 @@
 # Library Management System — ER Diagram
 
-**Status:** Draft — Pending Mentor Review
 
 ## 1. Entities
 

@@ -68,7 +68,7 @@ public class MemberServiceImpl implements MemberService {
 
         if(memberRepository.existsByEmail(request.getEmail())){
             throw new DuplicateResourceException(
-                    "Member with This email elready exists"
+                    "Member with This email already exists"
             );
         }
 
@@ -117,11 +117,13 @@ public class MemberServiceImpl implements MemberService {
     }
 
 
+
     @Override
-    public Page<MemberResponse> getAllMembers(Pageable pageable){
-        return memberRepository.findAll(pageable)
+    public Page<MemberResponse> getAllMembers(Pageable pageable) {
+        return memberRepository.findByRole(Member.Role.STUDENT, pageable)
                 .map(this::toResponse);
     }
+
 
     @Override
     public Page<MemberResponse> searchMember(String search, Pageable pageable){
