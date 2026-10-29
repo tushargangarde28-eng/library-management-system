@@ -11,10 +11,18 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return new InMemoryUserDetailsManager();
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -87,9 +95,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/members/**")
                         .hasRole("ADMIN")
 
-                        // Loans: ADMIN and STUDENT can access loan endpoints
+
+                        .requestMatchers(HttpMethod.GET,"/api/loans/myloans")
+                        .hasRole("STUDENT")
+
+
+                        // Loans: ADMIN
                         .requestMatchers("/api/loans/**")
-                        .hasAnyRole("ADMIN", "STUDENT")
+                        .hasRole("ADMIN")
+
+
+
 
                         // Other endpoints
                         .anyRequest().authenticated()

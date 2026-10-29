@@ -50,15 +50,15 @@ export default function DashboardPage({ refreshTrigger, onApiStatusChange }) {
     setError(null);
 
     try {
-      // Parallel requests to books, members, and live loans endpoints
+      // Parallel requests to books, members, and circulating loans endpoints
       const [booksData, activeMembersData, inactiveMembersData, loansData] = await Promise.all([
-        bookService.getBooks({ page: 0, size: 8, sortBy: 'bookId', direction: 'desc' }),
-        memberService.getMembers({ page: 0, size: 8, status: 'ACTIVE' }),
+        bookService.getBooks({ page: 0, size: 6, sortBy: 'bookId', direction: 'desc' }),
+        memberService.getMembers({ page: 0, size: 6, status: 'ACTIVE' }),
         memberService.getMembers({ page: 0, size: 1, status: 'INACTIVE' }).catch((err) => {
           console.warn('[Dashboard] Could not fetch inactive members count:', err);
           return { totalElements: 0, content: [] };
         }),
-        loanService.getAllLoans().catch((err) => {
+        loanService.getAllLoans({ size: 25 }).catch((err) => {
           console.warn('[Dashboard] Could not fetch loans from GET /api/loans:', err);
           return [];
         }),
@@ -159,11 +159,11 @@ export default function DashboardPage({ refreshTrigger, onApiStatusChange }) {
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
-            <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', margin: 0 }}>
-              Library Administration Portal
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#ffffff', letterSpacing: '-0.025em', margin: 0 }}>
+              Librix Administration & Operations Hub
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '650px', marginTop: '4px' }}>
-              Real-time monitoring of library catalog assets, patron memberships, and inventory circulation.
+              Real-time monitoring of library catalog assets, patron memberships, and circulation lifecycles.
             </p>
           </div>
 
@@ -184,6 +184,18 @@ export default function DashboardPage({ refreshTrigger, onApiStatusChange }) {
             >
               <PlusCircle size={16} />
               <span>Catalog</span>
+            </button>
+            <button
+              onClick={() => navigate('/reports')}
+              className="btn btn-secondary"
+              style={{
+                borderColor: 'rgba(239, 68, 68, 0.35)',
+                color: '#f87171',
+              }}
+              title="View overdue report generated from /api/loans/overdueLoans"
+            >
+              <AlertTriangle size={16} />
+              <span>Overdue Report</span>
             </button>
             <button
               onClick={() => navigate('/members')}

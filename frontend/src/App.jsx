@@ -9,6 +9,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import BooksPage from './pages/books/BooksPage';
 import MembersPage from './pages/members/MembersPage';
 import LoansPage from './pages/loans/LoansPage';
+import OverdueReportsPage from './pages/reports/OverdueReportsPage';
 
 // Student Workspace
 import StudentLayout from './components/layout/StudentLayout';
@@ -43,7 +44,7 @@ export default function App() {
     setRefreshTrigger((prev) => prev + 1);
     setTimeout(() => {
       setIsRefreshing(false);
-    }, 600);
+    }, 200);
   };
 
   return (
@@ -111,6 +112,7 @@ export default function App() {
             <Route path="/books" element={<BooksPage />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/loans" element={<LoansPage />} />
+            <Route path="/reports" element={<OverdueReportsPage />} />
           </Route>
 
           {/* Catch-all fallback */}

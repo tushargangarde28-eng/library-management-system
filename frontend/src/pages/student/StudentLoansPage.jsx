@@ -28,19 +28,14 @@ export default function StudentLoansPage() {
   const fetchStudentLoans = useCallback(async () => {
     setLoading(true);
     try {
-      const allLoans = await loanService.getAllLoans({ size: 100 });
-      const studentMemberId = Number(user?.memberId);
-      // Own history only
-      const studentLoans = (allLoans || []).filter(
-        (l) => Number(l.memberId) === studentMemberId
-      );
-      setLoans(studentLoans);
+      const studentLoans = await loanService.getMyLoans();
+      setLoans(Array.isArray(studentLoans) ? studentLoans : []);
     } catch (err) {
-      console.error('[StudentLoansPage] Error fetching loans:', err);
+      console.error('[StudentLoansPage] Error fetching loans from GET /api/loans/myloans:', err);
     } finally {
       setLoading(false);
     }
-  }, [user?.memberId]);
+  }, []);
 
   useEffect(() => {
     fetchStudentLoans();
@@ -311,7 +306,7 @@ export default function StudentLoansPage() {
                           color: loan.fine > 0 ? 'var(--danger)' : 'var(--text-muted)',
                         }}
                       >
-                        {loan.fine > 0 ? `$${Number(loan.fine).toFixed(2)}` : '$0.00'}
+                        {loan.fine > 0 ? `₹${Number(loan.fine).toFixed(2)}` : '₹0.00'}
                       </span>
                     </td>
 

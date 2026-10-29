@@ -36,4 +36,18 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             @Param("search") String search,
             Pageable pageable
     );
+
+
+    @Query("""
+    SELECT l FROM Loan l
+    WHERE l.status = :status
+      AND l.dueDate < CURRENT_DATE
+    ORDER BY l.dueDate ASC
+    """)
+    List<Loan> findOverdueLoans(
+            @Param("status") Loan.Status status
+    );
+
+    List<Loan> findByMember_MemberId(Long memberId);
 }
+

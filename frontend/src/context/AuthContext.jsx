@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authService } from '../api/authService';
+import { authService, isTokenExpired, parseJwt } from '../api/authService';
 
 const AuthContext = createContext(null);
 
@@ -8,22 +8,75 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state from local storage on load
+  /**
+   * Logout user and clear tokens
+   */
+  const logout = useCallback(() => {
+    authService.clearSession();
+    setUser(null);
+    setToken(null);
+  }, []);
+
+  // Initialize auth state from local storage on load (validating expiration)
   useEffect(() => {
     try {
       const storedToken = authService.getToken();
       const storedUser = authService.getUser();
 
-      if (storedToken && storedUser) {
+      if (storedToken && !isTokenExpired(storedToken) && storedUser) {
         setToken(storedToken);
         setUser(storedUser);
+      } else {
+        authService.clearSession();
+        setToken(null);
+        setUser(null);
       }
     } catch (err) {
       console.warn('[AuthProvider] Initialization error:', err);
+      authService.clearSession();
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Listen for system-wide auth expiration events (e.g. from apiClient 401 interceptor)
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      logout();
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, [logout]);
+
+  // Proactive token expiration timer
+  useEffect(() => {
+    if (!token) return;
+
+    const decoded = parseJwt(token);
+    if (!decoded || !decoded.exp) return;
+
+    const msRemaining = decoded.exp * 1000 - Date.now();
+
+    if (msRemaining <= 0) {
+      logout();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login?expired=true';
+      }
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      logout();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login?expired=true';
+      }
+    }, msRemaining);
+
+    return () => clearTimeout(timer);
+  }, [token, logout]);
 
   /**
    * Log in user using credentials via POST /api/members/login
@@ -43,45 +96,14 @@ export function AuthProvider({ children }) {
     return response;
   }, []);
 
-  /**
-   * Demo login for rapid testing / previewing UI when backend is offline
-   */
-  const demoLogin = useCallback((role = 'ADMIN') => {
-    const demoData = {
-      message: 'Demo Session Active',
-      memberId: role === 'ADMIN' ? 1 : 42,
-      name: role === 'ADMIN' ? 'Administrator' : 'Jane Student',
-      email: role === 'ADMIN' ? 'admin@library.com' : 'jane.student@campus.edu',
-      role: role,
-      token: `demo-jwt-token-${Date.now()}`,
-    };
-    authService.saveSession(demoData);
-    setToken(demoData.token);
-    setUser({
-      memberId: demoData.memberId,
-      name: demoData.name,
-      email: demoData.email,
-      role: demoData.role,
-    });
-    return demoData;
-  }, []);
-
-  /**
-   * Logout user and clear tokens
-   */
-  const logout = useCallback(() => {
-    authService.clearSession();
-    setUser(null);
-    setToken(null);
-  }, []);
+  const isAuthenticated = Boolean(token && user && !isTokenExpired(token));
 
   const value = {
     user,
     token,
-    isAuthenticated: Boolean(token && user),
+    isAuthenticated,
     isLoading,
     login,
-    demoLogin,
     logout,
   };
 
