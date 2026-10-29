@@ -177,6 +177,32 @@ public class LoanService {
 
     }
 
+    //get All Overdue Loans
+    @Transactional(readOnly = true)
+    public List<LoanResponse> getOverDueLoans(){
+        List<Loan> overDueLoans =
+                loanRepository.findOverdueLoans(Loan.Status.ACTIVE);
+
+        logger.info("Fetching Overdue Loans. Total Found :{}", overDueLoans.size());
+
+        return overDueLoans.stream()
+                .map(this::toLoanResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public  List<LoanResponse> getMyLoans(String email){
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(()-> new ResourceNotFoundException("Member not found with email"+email));
+        return loanRepository
+                .findByMember_MemberId(member.getMemberId())
+                .stream()
+                .map(this::toLoanResponse)
+                .collect(Collectors.toList());
+    }
+
+
+
 
     private LoanResponse toLoanResponse(Loan loan) {
         LoanResponse response = new LoanResponse();

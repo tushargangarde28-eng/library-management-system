@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/loans")
@@ -22,6 +24,26 @@ public class LoanController {
 
     public LoanController(LoanService loanService) {
         this.loanService = loanService;
+    }
+
+
+
+    @GetMapping("/overdueLoans")
+    public ResponseEntity<List<LoanResponse>> overdueLoans(){
+
+        List<LoanResponse> response = loanService.getOverDueLoans();
+        return ResponseEntity.ok(response);
+
+    }
+
+    @GetMapping("/myloans")
+    public ResponseEntity<List<LoanResponse>> getMyLoans(){
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+        List<LoanResponse>response = loanService.getMyLoans(email);
+        return ResponseEntity.ok(response);
     }
 
     // Borrow a book

@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Server,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
@@ -37,6 +38,12 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       label: 'Circulation & Loans',
       icon: ArrowLeftRight,
       badge: 'Active',
+    },
+    {
+      to: '/reports',
+      label: 'Overdue Reports',
+      icon: AlertTriangle,
+      badge: 'Audit',
     },
   ];
 
@@ -87,10 +94,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
           {!collapsed && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                Libri<span style={{ color: '#818cf8' }}>Core</span>
+              <span style={{ fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.03em', color: '#ffffff', display: 'flex', alignItems: 'center' }}>
+                Libri<span style={{ background: 'linear-gradient(135deg, #818cf8 0%, #38bdf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>x</span>
               </span>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
                 Enterprise LMS
               </span>
             </div>

@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Librix — Frontend Architecture & API Integration Master Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #060911;
+      --bg-card: #0d1322;
+      --bg-card-elevated: #131c31;
+      --bg-card-hover: #192542;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-medium: rgba(255, 255, 255, 0.16);
+      --primary: #6366f1;
+      --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-crimson: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 80px;
+    }
+
+    /* Ambient background gradient lighting */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 90% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.04) 0%, transparent 60%);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Header Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(22, 32, 55, 0.85) 0%, rgba(13, 19, 34, 0.95) 100%);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-xl);
+      padding: 40px 48px;
+      margin-bottom: 36px;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), 0 0 30px rgba(99, 102, 241, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .badge-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.16);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #818cf8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #818cf8 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 860px;
+      line-height: 1.6;
+    }
+
+    /* Layout Grid */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .docs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Sticky Table of Contents */
+    .toc-card {
+      position: sticky;
+      top: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+
+    .toc-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toc-list a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      display: block;
+      transition: all 0.15s ease;
+    }
+
+    .toc-list a:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateX(3px);
+    }
+
+    /* Content Cards */
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      gap: 36px;
+    }
+
+    .doc-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .section-num {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: var(--primary-gradient);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+    }
+
+    .lead-p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Feature Cards Grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .feature-box {
+      background: var(--bg-card-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-box:hover {
+      border-color: var(--border-medium);
+      transform: translateY(-2px);
+    }
+
+    .feature-box h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-box p {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Table Styles */
+    .api-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      margin-top: 18px;
+    }
+
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+      min-width: 780px;
+    }
+
+    .api-table th {
+      background: #090e1a;
+      padding: 12px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .api-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      vertical-align: top;
+    }
+
+    .api-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .api-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Method Badges */
+    .method {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      width: 58px;
+    }
+
+    .method.get {
+      background: rgba(16, 185, 129, 0.16);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .method.post {
+      background: rgba(99, 102, 241, 0.16);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .method.put {
+      background: rgba(245, 158, 11, 0.16);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .method.delete {
+      background: rgba(239, 68, 68, 0.16);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Role Badges */
+    .role-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .role-admin {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .role-student {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .role-public {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    /* Code blocks */
+    code,
+    .code-snippet {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    p code,
+    td code {
+      background: rgba(255, 255, 255, 0.08);
+      color: #a5b4fc;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+    }
+
+    pre {
+      background: #080c16;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      margin: 14px 0;
+      line-height: 1.5;
+    }
+
+    .json-key {
+      color: #93c5fd;
+    }
+
+    .json-str {
+      color: #86efac;
+    }
+
+    .json-num {
+      color: #fde047;
+    }
+
+    .json-bool {
+      color: #f472b6;
+    }
+
+    /* Highlights & Tips */
+    .callout {
+      border-left: 3px solid var(--primary);
+      background: rgba(99, 102, 241, 0.08);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      padding: 14px 18px;
+      margin: 18px 0;
+      font-size: 0.875rem;
+      color: #c7d2fe;
+    }
+
+    .callout.success {
+      border-left-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.08);
+      color: #a7f3d0;
+    }
+
+    .callout.warning {
+      border-left-color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.08);
+      color: #fef08a;
+    }
+
+    /* Tree View */
+    .file-tree {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: #080c16;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      line-height: 1.6;
+      color: #94a3b8;
+    }
+
+    .file-tree .dir {
+      color: #60a5fa;
+      font-weight: 700;
+    }
+
+    .file-tree .file {
+      color: #e2e8f0;
+    }
+
+    .file-tree .desc {
+      color: #64748b;
+      font-style: italic;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ambient-bg"></div>
+
+  <div class="container">
+    <!-- Hero Banner -->
+    <header class="hero-banner">
+      <div class="badge-brand">Librix LMS • Architecture Specification</div>
+      <h1 class="hero-title">Frontend Architecture & <span>API Integration</span> Blueprint</h1>
+      <p class="hero-desc">
+        Comprehensive master guide documenting the complete frontend modernization of <strong>Librix</strong>.
+        Details all REST microservice integrations, real-time database queries, zero-local-cache architecture, JWT token
+        expiration lifecycle, Indian Rupees (₹) financial formatting, and performance engineering.
+      </p>
+    </header>
+
+    <div class="docs-grid">
+      <!-- Table of Contents -->
+      <nav class="toc-card">
+        <div class="toc-title">Table of Contents</div>
+        <ul class="toc-list">
+          <li><a href="#section-overview">1. Executive Summary & Brand</a></li>
+          <li><a href="#section-work-done">2. What Was Built in Frontend</a></li>
+          <li><a href="#section-api-blueprint">3. Complete API Integration Map</a></li>
+          <li><a href="#section-data-models">4. Data Models & Normalization</a></li>
+          <li><a href="#section-auth-lifecycle">5. JWT Security & Expiry Flow</a></li>
+          <li><a href="#section-performance">6. Performance Tuning & Latency</a></li>
+          <li><a href="#section-structure">7. Frontend Directory Structure</a></li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="content-area">
+
+        <!-- Section 1: Overview -->
+        <section id="section-overview" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">01</div>
+            <h2 class="section-title">Executive Summary & Brand Architecture</h2>
+          </div>
+          <p class="lead-p">
+            <strong>Librix</strong> is an enterprise-grade library management application built with React 19, Vite, and
+            Spring Boot 3. It enforces strict role separation between the <strong>Administrator Command
+              Workspace</strong> and the <strong>Patron / Student Campus Workspace</strong>.
+          </p>
+
+          <div class="feature-grid">
+            <div class="feature-box">
+              <h4>🛡️ Zero-Client-Cache Integrity</h4>
+              <p>The frontend maintains zero mock arrays or persistent localStorage databases. Every single metric,
+                catalog record, loan status, and fine calculation is fetched directly from the live backend database.
+              </p>
+            </div>
+            <div class="feature-box">
+              <h4>⚡ Automatic Expiry Redirection</h4>
+              <p>JWT tokens are actively monitored client-side and intercepted on 401 Unauthorized responses. Expired
+                tokens clear sessions and redirect users seamlessly to the login page with an alert banner.</p>
+            </div>
+            <div class="feature-box">
+              <h4>🇮🇳 Indian Rupees (₹) Formatting</h4>
+              <p>All catalog fines, active debt receivables, printable receipts, and penalty rates are uniformly
+                standardized in Indian Rupees (₹) with <code>en-IN</code> localization.</p>
+            </div>
+            <div class="feature-box">
+              <h4>🎨 Modern Librix Design</h4>
+              <p>A sleek midnight and electric indigo theme with fluid typography, responsive data tables, glassmorphic
+                cards, and custom printable transaction dockets.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: What Was Built -->
+        <section id="section-work-done" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">02</div>
+            <h2 class="section-title">Summary of Work Done in Frontend</h2>
+          </div>
+          <p class="lead-p">
+            All backend Java controllers, repositories, and services were preserved intact. The frontend was refactored,
+            extended, and polished:
+          </p>
+
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 14px;">
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Purged Client-Side Local Storage Caching:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Removed
+                  <code>libricore_loans_registry_v1</code>, <code>saveStoredLoans()</code>, and mock fallback arrays
+                  from <code>loanService.js</code>. Added automatic cleanup of legacy cached records on startup.
+                </p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Integrated <code>GET /api/loans/overdueLoans</code> & Created Overdue Reports Page:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Built <code>OverdueReportsPage.jsx</code> at
+                  route <code>/reports</code> with KPI cards, multi-column sorting, severity tabs, CSV export, and print
+                  stylesheet.</p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Integrated <code>GET /api/loans/myloans</code> in Student Panel:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Connected <code>StudentDashboardPage.jsx</code>
+                  and <code>StudentLoansPage.jsx</code> to the dedicated student endpoint that identifies the patron via
+                  their JWT token.</p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Engineered Automated JWT Expiration & Redirection:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Implemented proactive <code>setTimeout</code>
+                  expiry timers, route-guard validation in <code>ProtectedRoute.jsx</code>, and 401 HTTP response
+                  interceptors in <code>client.js</code>.</p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Standardized Indian Rupees (₹) Financials:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Replaced dollar icons with Lucide
+                  <code>IndianRupee</code> icons across all loan tables, receipt modals, student dashboards, and overdue
+                  penalty slips.
+                </p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Fixed Frontend Latency & Vite Dev Bottlenecks:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Pre-bundled <code>lucide-react</code> in
+                  <code>vite.config.js</code>, switched proxy target to <code>127.0.0.1</code> to eliminate Windows IPv6
+                  delays, and removed 700ms artificial <code>setTimeout</code> delays.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Section 3: Complete API Integration Blueprint -->
+        <section id="section-api-blueprint" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">03</div>
+            <h2 class="section-title">Complete API Integration Blueprint</h2>
+          </div>
+          <p class="lead-p">
+            Complete inventory of all 17 Spring Boot backend endpoints integrated into the frontend application:
+          </p>
+
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead>
+                <tr>
+                  <th>Method & Endpoint</th>
+                  <th>Role</th>
+                  <th>Request Payload / Query Params</th>
+                  <th>Response Data</th>
+                  <th>Frontend Consumer</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- 1. Login -->
+                <tr>
+                  <td><span class="method post">POST</span> <code>/api/members/login</code></td>
+                  <td><span class="role-badge role-public">PUBLIC</span></td>
+                  <td><code>{ email, password }</code></td>
+                  <td><code>{ message, memberId, name, email, role, token }</code></td>
+                  <td><code>authService.login()</code><br><code>LoginPage.jsx</code></td>
+                </tr>
+
+                <!-- 2. Health -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/actuator/health</code></td>
+                  <td><span class="role-badge role-public">PUBLIC</span></td>
+                  <td>None</td>
+                  <td><code>{ status: "UP" }</code></td>
+                  <td><code>LoginPage.jsx</code> (Connectivity pill)</td>
+                </tr>
+
+                <!-- 3. Get Members -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/members</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>page, size, shortBy, direction, search, status</code></td>
+                  <td><code>Page&lt;MemberResponse&gt;</code> (content, totalElements, totalPages)</td>
+                  <td><code>memberService.getMembers()</code><br><code>MembersPage.jsx</code>,
+                    <code>DashboardPage.jsx</code>
+                  </td>
+                </tr>
+
+                <!-- 4. Get Member By Id -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/members/{id}</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>id</code> (Path variable)</td>
+                  <td><code>MemberResponse</code> (id, name, email, phone, role, status)</td>
+                  <td><code>memberService.getMemberById()</code></td>
+                </tr>
+
+                <!-- 5. Create Member -->
+                <tr>
+                  <td><span class="method post">POST</span> <code>/api/members</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ name, email, phone, password }</code></td>
+                  <td><code>MemberResponse</code> (HTTP 201 Created)</td>
+                  <td><code>memberService.createMember()</code><br><code>MemberFormModal.jsx</code></td>
+                </tr>
+
+                <!-- 6. Update Member -->
+                <tr>
+                  <td><span class="method put">PUT</span> <code>/api/members/{id}</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ name, phone }</code></td>
+                  <td><code>MemberResponse</code></td>
+                  <td><code>memberService.updateMember()</code><br><code>MemberFormModal.jsx</code></td>
+                </tr>
+
+                <!-- 7. Deactivate Member -->
+                <tr>
+                  <td><span class="method delete">DEL</span> <code>/api/members/{id}</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>id</code> (Path variable)</td>
+                  <td><code>MemberResponse</code> (status: "INACTIVE")</td>
+                  <td><code>memberService.deactivateMember()</code><br><code>DeactivateMemberModal.jsx</code></td>
+                </tr>
+
+                <!-- 8. Get Books -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/books</code></td>
+                  <td><span class="role-badge role-public">ADMIN / STUDENT</span></td>
+                  <td><code>page, size, sortBy, direction, search</code></td>
+                  <td><code>Page&lt;BookResponse&gt;</code> (content, totalElements, totalPages)</td>
+                  <td><code>bookService.getBooks()</code><br><code>BooksPage.jsx</code>,
+                    <code>StudentBooksPage.jsx</code>
+                  </td>
+                </tr>
+
+                <!-- 9. Get Book By Id -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/books/{id}</code></td>
+                  <td><span class="role-badge role-public">ADMIN / STUDENT</span></td>
+                  <td><code>id</code> (Path variable)</td>
+                  <td><code>BookResponse</code> (id, title, author, isbn, copies)</td>
+                  <td><code>bookService.getBookById()</code></td>
+                </tr>
+
+                <!-- 10. Create Book -->
+                <tr>
+                  <td><span class="method post">POST</span> <code>/api/books</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ title, author, isbn, totalCopies }</code></td>
+                  <td><code>BookResponse</code> (HTTP 201 Created)</td>
+                  <td><code>bookService.createBook()</code><br><code>BookFormModal.jsx</code></td>
+                </tr>
+
+                <!-- 11. Update Book -->
+                <tr>
+                  <td><span class="method put">PUT</span> <code>/api/books/{id}</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ title, author, isbn, totalCopies }</code></td>
+                  <td><code>BookResponse</code></td>
+                  <td><code>bookService.updateBook()</code><br><code>BookFormModal.jsx</code></td>
+                </tr>
+
+                <!-- 12. Delete Book -->
+                <tr>
+                  <td><span class="method delete">DEL</span> <code>/api/books/{id}</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>id</code> (Path variable)</td>
+                  <td>HTTP 204 No Content</td>
+                  <td><code>bookService.deleteBook()</code><br><code>DeleteBookModal.jsx</code></td>
+                </tr>
+
+                <!-- 13. Get All Loans -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/loans</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>page, size, search, sort</code></td>
+                  <td><code>Page&lt;LoanResponse&gt;</code></td>
+                  <td><code>loanService.getLoans()</code><br><code>LoansPage.jsx</code>, <code>DashboardPage.jsx</code>
+                  </td>
+                </tr>
+
+                <!-- 14. Borrow Book -->
+                <tr>
+                  <td><span class="method post">POST</span> <code>/api/loans/borrow</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ memberId, bookId }</code></td>
+                  <td><code>LoanResponse</code> (HTTP 201 Created, status: "ACTIVE")</td>
+                  <td><code>loanService.borrowBook()</code><br><code>BorrowBookModal.jsx</code></td>
+                </tr>
+
+                <!-- 15. Return Book -->
+                <tr>
+                  <td><span class="method put">PUT</span> <code>/api/loans/{id}/return</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>id</code> (Path variable)</td>
+                  <td><code>LoanResponse</code> (status: "RETURNED", fine computed)</td>
+                  <td><code>loanService.returnBook()</code><br><code>ReturnBookModal.jsx</code></td>
+                </tr>
+
+                <!-- 16. Overdue Loans -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/loans/overdueLoans</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td>None</td>
+                  <td><code>List&lt;LoanResponse&gt;</code> (where dueDate &lt; CURRENT_DATE)</td>
+                  <td><code>loanService.getOverdueLoans()</code><br><code>OverdueReportsPage.jsx</code></td>
+                </tr>
+
+                <!-- 17. Student My Loans -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/loans/myloans</code></td>
+                  <td><span class="role-badge role-student">STUDENT</span></td>
+                  <td>Bearer Token Header (JWT email extracted in Spring Security)</td>
+                  <td><code>List&lt;LoanResponse&gt;</code> (personal loan history)</td>
+                  <td><code>loanService.getMyLoans()</code><br><code>StudentDashboardPage.jsx</code>,
+                    <code>StudentLoansPage.jsx</code>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 4: Data Models -->
+        <section id="section-data-models" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">04</div>
+            <h2 class="section-title">Data Models & Frontend Normalization</h2>
+          </div>
+          <p class="lead-p">
+            How raw backend JSON representations are enriched and normalized in frontend memory before rendering:
+          </p>
+
+          <h3 style="font-size: 1.05rem; margin-top: 16px; color: #a5b4fc;">1. Loan Normalization
+            (<code>enrichLoan</code>)</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+            The backend returns standard loan dates. The frontend enriches each loan with overdue status, delinquency
+            duration, and live accrued fines:
+          </p>
+          <pre><code><span class="json-key">{</span>
+  <span class="json-key">"loanId"</span>: <span class="json-num">42</span>,
+  <span class="json-key">"memberId"</span>: <span class="json-num">7</span>,
+  <span class="json-key">"memberName"</span>: <span class="json-str">"Rahul Sharma"</span>,
+  <span class="json-key">"bookId"</span>: <span class="json-num">108</span>,
+  <span class="json-key">"bookTitle"</span>: <span class="json-str">"Clean Architecture"</span>,
+  <span class="json-key">"issueDate"</span>: <span class="json-str">"2026-10-10"</span>,
+  <span class="json-key">"dueDate"</span>: <span class="json-str">"2026-10-18"</span>,
+  <span class="json-key">"returnDate"</span>: <span class="json-bool">null</span>,
+  <span class="json-key">"status"</span>: <span class="json-str">"ACTIVE"</span>,
+  <span class="json-key">"isOverdue"</span>: <span class="json-bool">true</span>,           <span class="desc">// Computed: today &gt; dueDate &amp;&amp; status === 'ACTIVE'</span>
+  <span class="json-key">"daysOverdue"</span>: <span class="json-num">11</span>,            <span class="desc">// Computed: days past due date</span>
+  <span class="json-key">"fine"</span>: <span class="json-num">0</span>,                    <span class="desc">// Backend fine field (settled upon return)</span>
+  <span class="json-key">"accruedFine"</span>: <span class="json-num">55</span>             <span class="desc">// Computed: 11 days * ₹5/day rate = ₹55</span>
+<span class="json-key">}</span></code></pre>
+
+          <h3 style="font-size: 1.05rem; margin-top: 24px; color: #a5b4fc;">2. Book Normalization
+            (<code>normalizeBook</code>)</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+            Normalizes total vs available copies returned from the Spring Boot entity to guarantee consistent stock
+            representations:
+          </p>
+          <pre><code><span class="json-key">{</span>
+  <span class="json-key">"bookId"</span>: <span class="json-num">108</span>,
+  <span class="json-key">"title"</span>: <span class="json-str">"Clean Architecture"</span>,
+  <span class="json-key">"author"</span>: <span class="json-str">"Robert C. Martin"</span>,
+  <span class="json-key">"isbn"</span>: <span class="json-str">"978-0134494166"</span>,
+  <span class="json-key">"totalCopies"</span>: <span class="json-num">10</span>,
+  <span class="json-key">"availableCopies"</span>: <span class="json-num">8</span>
+<span class="json-key">}</span></code></pre>
+        </section>
+
+        <!-- Section 5: Auth Lifecycle -->
+        <section id="section-auth-lifecycle" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">05</div>
+            <h2 class="section-title">JWT Security & Token Expiry Flow</h2>
+          </div>
+          <p class="lead-p">
+            Authentication is safeguarded by a multi-layered security cycle that guarantees expired tokens are never
+            sent and sessions terminate cleanly:
+          </p>
+
+          <div class="feature-grid">
+            <div class="feature-box">
+              <h4>1. Pre-Flight Token Inspection</h4>
+              <p>Before any request leaves <code>client.js</code>, <code>authService.isTokenExpired(token)</code>
+                decodes the JWT <code>exp</code> claim. If expired, the request is aborted, local session cleared, and
+                browser redirected.</p>
+            </div>
+            <div class="feature-box">
+              <h4>2. Backend 401 Interception</h4>
+              <p>If Spring Boot's <code>JwtAuthenticationFilter</code> rejects a token as expired,
+                <code>client.js</code> catches HTTP 401, broadcasts an <code>auth:expired</code> event, clears storage,
+                and routes to <code>/login?expired=true</code>.
+              </p>
+            </div>
+            <div class="feature-box">
+              <h4>3. Proactive Idle Timer</h4>
+              <p>In <code>AuthContext.jsx</code>, a dynamic <code>setTimeout</code> fires exactly when
+                <code>(exp * 1000 - Date.now()) &lt;= 0</code>, logging out the user if they remain idle on a page past
+                the expiration timestamp.
+              </p>
+            </div>
+            <div class="feature-box">
+              <h4>4. Route Guard Re-Validation</h4>
+              <p><code>ProtectedRoute.jsx</code> verifies both <code>isAuthenticated</code> and
+                <code>!isTokenExpired(token)</code> on every client-side page navigation.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 6: Performance -->
+        <section id="section-performance" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">06</div>
+            <h2 class="section-title">Performance Tuning & Latency Elimination</h2>
+          </div>
+          <p class="lead-p">
+            Specific optimizations implemented in Vite and the frontend pipeline that reduced build times from 10.31s to
+            2.46s and eliminated UI lag:
+          </p>
+
+          <div class="api-table-wrap">
+            <table class="api-table">
+              <thead>
+                <tr>
+                  <th>Bottleneck Area</th>
+                  <th>Root Cause</th>
+                  <th>Optimization Implemented</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Windows Proxy Latency</strong></td>
+                  <td>Vite dev proxy targeted <code>http://localhost:8080</code>. Node.js on Windows attempted IPv6
+                    (<code>::1</code>) first, causing 300ms–1500ms connection timeouts.</td>
+                  <td>Updated proxy target to IPv4 loopback <code>http://127.0.0.1:8080</code>.</td>
+                  <td>Instant API response routing (0ms DNS overhead).</td>
+                </tr>
+                <tr>
+                  <td><strong>Vite Dev HMR Overhead</strong></td>
+                  <td><code>lucide-react</code> exports over 1,500 icon modules. Without pre-bundling, Vite served
+                    hundreds of individual HTTP ES modules.</td>
+                  <td>Added
+                    <code>optimizeDeps.include: ['lucide-react', 'react', 'react-dom', 'react-router-dom']</code> in
+                    <code>vite.config.js</code>.
+                  </td>
+                  <td>Pre-compiled into a single esbuild bundle on start.</td>
+                </tr>
+                <tr>
+                  <td><strong>Artificial Code Lag</strong></td>
+                  <td><code>LoginPage.jsx</code> had a hardcoded <code>setTimeout(..., 700)</code> delay;
+                    <code>App.jsx</code> had <code>setTimeout(..., 600)</code>.
+                  </td>
+                  <td>Removed artificial pauses to provide instant 100ms micro-transitions.</td>
+                  <td>Snappy, responsive navigation.</td>
+                </tr>
+                <tr>
+                  <td><strong>Dashboard Payload</strong></td>
+                  <td>Dashboard requested 100 full loan records alongside books and patrons just to count active items.
+                  </td>
+                  <td>Reduced initial pagination size to 25 records.</td>
+                  <td>75% reduction in initial JSON transfer size.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 7: Structure -->
+        <section id="section-structure" class="doc-section">
+          <div class="section-header">
+            <div class="section-num">07</div>
+            <h2 class="section-title">Frontend Directory Structure</h2>
+          </div>
+          <p class="lead-p">
+            Architecture and file organization across the <code>frontend/src/</code> codebase:
+          </p>
+
+          <div class="file-tree">
+            <div><span class="dir">frontend/src/</span></div>
+            <div>├── <span class="dir">api/</span> <span class="desc"># Centralized API service layer</span></div>
+            <div>│ ├── <span class="file">client.js</span> <span class="desc"># Central fetch client, 401 interceptor,
+                Bearer auth header injection</span></div>
+            <div>│ ├── <span class="file">authService.js</span> <span class="desc"># JWT parsing, expiration checker,
+                session storage</span></div>
+            <div>│ ├── <span class="file">bookService.js</span> <span class="desc"># CRUD /api/books with copy count
+                normalization</span></div>
+            <div>│ ├── <span class="file">loanService.js</span> <span class="desc"># Circulation endpoints (/borrow,
+                /return, /myloans, /overdueLoans)</span></div>
+            <div>│ └── <span class="file">memberService.js</span> <span class="desc"># Patron management and
+                authentication endpoints</span></div>
+            <div>├── <span class="dir">components/</span></div>
+            <div>│ ├── <span class="dir">common/</span> <span class="desc"># Modal, Pagination, ProtectedRoute,
+                StatCard, StatusBadge, Toast</span></div>
+            <div>│ └── <span class="dir">layout/</span> <span class="desc"># AdminLayout, Sidebar, Topbar,
+                StudentLayout, StudentSidebar, StudentTopbar</span></div>
+            <div>├── <span class="dir">context/</span></div>
+            <div>│ └── <span class="file">AuthContext.jsx</span> <span class="desc"># React Auth Context, user state,
+                proactive expiration timer</span></div>
+            <div>├── <span class="dir">pages/</span></div>
+            <div>│ ├── <span class="dir">auth/</span> <span class="desc"># LoginPage (Librix brand, error handling,
+                session expired banner)</span></div>
+            <div>│ ├── <span class="dir">books/</span> <span class="desc"># BooksPage, BookFormModal,
+                DeleteBookModal</span></div>
+            <div>│ ├── <span class="dir">dashboard/</span> <span class="desc"># DashboardPage (executive overview,
+                catalog health, live counters)</span></div>
+            <div>│ ├── <span class="dir">loans/</span> <span class="desc"># LoansPage, BorrowBookModal, ReturnBookModal,
+                LoanReceiptModal</span></div>
+            <div>│ ├── <span class="dir">members/</span> <span class="desc"># MembersPage, MemberFormModal,
+                DeactivateMemberModal</span></div>
+            <div>│ ├── <span class="dir">reports/</span> <span class="desc"># OverdueReportsPage (overdue loans audit, ₹
+                fine metrics, CSV export)</span></div>
+            <div>│ └── <span class="dir">student/</span> <span class="desc"># StudentDashboardPage, StudentBooksPage,
+                StudentLoansPage</span></div>
+            <div>├── <span class="file">App.jsx</span> <span class="desc"># Router root, role dispatching, admin vs
+                student protected workspaces</span></div>
+            <div>├── <span class="file">index.css</span> <span class="desc"># Librix design system, midnight gradients,
+                responsive utilities</span></div>
+            <div>└── <span class="file">main.jsx</span> <span class="desc"># React DOM entry point</span></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <footer>
+      Librix Enterprise LMS • Frontend Architecture & API Integration Documentation • Generated for Local & Production
+      Deployment
+    </footer>
+  </div>
+</body>
+
+</html>

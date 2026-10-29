@@ -8,7 +8,7 @@ import {
   User, 
   Calendar, 
   Clock, 
-  DollarSign,
+  IndianRupee,
   Barcode,
   Library
 } from 'lucide-react';
@@ -100,7 +100,7 @@ export default function LoanReceiptModal({ isOpen, onClose, loan, isReturn = fal
                   <Library size={15} />
                 </div>
                 <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                  Libri<span style={{ color: '#818cf8' }}>Core</span>
+                  Libri<span style={{ color: '#818cf8' }}>x</span>
                 </span>
               </div>
               <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -203,7 +203,7 @@ export default function LoanReceiptModal({ isOpen, onClose, loan, isReturn = fal
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '0.8rem' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Overdue Fine:</span>
               <span style={{ color: Number(loan.fine) > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
-                ${Number(loan.fine || 0).toFixed(2)}
+                ₹{Number(loan.fine || 0).toFixed(2)}
               </span>
             </div>
 

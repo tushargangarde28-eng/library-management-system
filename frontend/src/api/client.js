@@ -1,11 +1,25 @@
 /**
  * Centralized API Client for Library Management System
- * Handles base routing, JSON encoding/decoding, headers, and console error diagnostics.
+ * Handles base routing, JSON encoding/decoding, headers, token verification, and error diagnostics.
  */
+
+import { authService, isTokenExpired } from './authService';
 
 const BASE_URL = '/api';
 
+function handleExpiredSession() {
+  authService.clearSession();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login?expired=true';
+    }
+  }
+}
+
 export async function apiClient(endpoint, { body, method, params, headers = {}, ...customConfig } = {}) {
+  const isAuthEndpoint = endpoint.includes('/members/login');
+
   // Build query string if params are provided
   let url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   if (params) {
@@ -21,7 +35,16 @@ export async function apiClient(endpoint, { body, method, params, headers = {}, 
     }
   }
 
+  // Token retrieval & expiration pre-check
   const token = typeof window !== 'undefined' ? localStorage.getItem('lms_auth_token') : null;
+
+  if (token && !isAuthEndpoint && isTokenExpired(token)) {
+    handleExpiredSession();
+    const error = new Error('Your session has expired. Redirecting to login...');
+    error.status = 401;
+    throw error;
+  }
+
   const defaultHeaders = {
     'Accept': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -62,6 +85,11 @@ export async function apiClient(endpoint, { body, method, params, headers = {}, 
       } catch {
         responseData = text ? { message: text } : null;
       }
+    }
+
+    // Intercept 401 Unauthorized (Expired or Invalid JWT)
+    if (response.status === 401 && !isAuthEndpoint) {
+      handleExpiredSession();
     }
 
     if (!response.ok) {
