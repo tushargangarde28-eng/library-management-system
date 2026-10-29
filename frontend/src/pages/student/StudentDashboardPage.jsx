@@ -31,21 +31,16 @@ export default function StudentDashboardPage({ refreshTrigger, onApiStatusChange
   const fetchStudentData = useCallback(async () => {
     setLoading(true);
     try {
-      const [allLoans, booksRes] = await Promise.all([
-        loanService.getAllLoans({ size: 100 }),
+      const [studentLoans, booksRes] = await Promise.all([
+        loanService.getMyLoans(),
         bookService.getBooks({ page: 0, size: 6, sortBy: 'bookId', direction: 'desc' }).catch(() => ({ content: [] })),
       ]);
 
       if (onApiStatusChange) onApiStatusChange('online');
 
-      // Filter only current student's own borrowing history
-      const studentMemberId = Number(user?.memberId);
-      const studentLoans = (allLoans || []).filter(
-        (l) => Number(l.memberId) === studentMemberId
-      );
-
-      setMyLoans(studentLoans);
-      setActiveLoans(studentLoans.filter((l) => l.status === 'ACTIVE'));
+      const loansList = Array.isArray(studentLoans) ? studentLoans : [];
+      setMyLoans(loansList);
+      setActiveLoans(loansList.filter((l) => l.status === 'ACTIVE'));
       setAvailableBooks(booksRes?.content || []);
     } catch (err) {
       console.error('[StudentDashboard] Error fetching data:', err);
@@ -53,7 +48,7 @@ export default function StudentDashboardPage({ refreshTrigger, onApiStatusChange
     } finally {
       setLoading(false);
     }
-  }, [user?.memberId, onApiStatusChange]);
+  }, [onApiStatusChange]);
 
   useEffect(() => {
     fetchStudentData();
@@ -90,7 +85,7 @@ export default function StudentDashboardPage({ refreshTrigger, onApiStatusChange
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '4px 12px', borderRadius: 'var(--radius-full)', background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: '#34d399', fontSize: '0.75rem', fontWeight: 700, marginBottom: '12px' }}>
               <GraduationCap size={14} />
-              <span>STUDENT / MEMBER PORTAL</span>
+              <span>LIBRIX STUDENT CAMPUS</span>
             </div>
             <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               Welcome back, {user?.name || 'Member'}!
@@ -198,10 +193,10 @@ export default function StudentDashboardPage({ refreshTrigger, onApiStatusChange
             </div>
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: totalFines > 0 ? 'var(--danger)' : 'var(--success)' }}>
-            ${totalFines.toFixed(2)}
+            ₹{totalFines.toFixed(2)}
           </div>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-            {totalFines > 0 ? '$5.00/day fine active' : 'No outstanding fines on record'}
+            {totalFines > 0 ? '₹5.00/day fine active' : 'No outstanding fines on record'}
           </p>
         </div>
       </div>

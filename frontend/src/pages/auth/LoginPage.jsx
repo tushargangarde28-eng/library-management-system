@@ -17,13 +17,17 @@ import {
   HelpCircle,
   X,
   Zap,
-  Info
+  Info,
+  Clock
 } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, demoLogin, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
+
+  const searchParams = new URLSearchParams(location.search);
+  const isSessionExpired = searchParams.get('expired') === 'true';
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -50,17 +54,19 @@ export default function LoginPage() {
     let isMounted = true;
     async function checkApi() {
       try {
-        const res = await fetch('/api/members?page=0&size=1', {
+        const res = await fetch('/actuator/health', {
           method: 'GET',
           headers: { Accept: 'application/json' },
         });
         if (isMounted) {
-          // Even if 401/403, the server is responding!
-          setBackendStatus(res.status < 500 ? 'online' : 'offline');
+          setBackendStatus(res.ok ? 'online' : 'offline');
         }
-      } catch (err) {
+      } catch {
         if (isMounted) {
-          setBackendStatus('offline');
+          // Fallback to checking root API if actuator is disabled
+          fetch('/api/members?page=0&size=1', { method: 'GET', headers: { Accept: 'application/json' } })
+            .then((r) => isMounted && setBackendStatus(r.status < 500 ? 'online' : 'offline'))
+            .catch(() => isMounted && setBackendStatus('offline'));
         }
       }
     }
@@ -97,12 +103,13 @@ export default function LoginPage() {
     try {
       const response = await login({ email: trimmedEmail, password });
       setLoginSuccess(true);
+      const userRole = response?.role || 'ADMIN';
+      const defaultDest = userRole === 'STUDENT' ? '/student/dashboard' : '/dashboard';
+      const destination = location.state?.from?.pathname || defaultDest;
+      // Instant transition without artificial lag
       setTimeout(() => {
-        const userRole = response?.role || 'ADMIN';
-        const defaultDest = userRole === 'STUDENT' ? '/student/dashboard' : '/dashboard';
-        const destination = location.state?.from?.pathname || defaultDest;
         navigate(destination, { replace: true });
-      }, 700);
+      }, 100);
     } catch (err) {
       console.error('[LoginPage] Authentication failed:', err);
       let message = err.message || 'Invalid email or password';
@@ -129,16 +136,6 @@ export default function LoginPage() {
     }
   };
 
-  // One-click demo login for previewing when backend is offline
-  const handleInstantDemo = (role) => {
-    demoLogin(role);
-    setLoginSuccess(true);
-    setTimeout(() => {
-      const destination = role === 'STUDENT' ? '/student/dashboard' : '/dashboard';
-      navigate(destination, { replace: true });
-    }, 600);
-  };
-
   return (
     <div className="login-root-container">
       {/* Dynamic Ambient Glow Backdrops */}
@@ -157,9 +154,9 @@ export default function LoginPage() {
             </div>
             <div>
               <div className="login-brand-title">
-                Libri<span className="brand-accent">Core</span>
+                Libri<span className="brand-accent">x</span>
               </div>
-              <div className="login-brand-edition">Enterprise Library System v2.4</div>
+              <div className="login-brand-edition">Enterprise Library System</div>
             </div>
           </div>
 
@@ -250,6 +247,26 @@ export default function LoginPage() {
                 Enter your institutional credentials to authenticate with the backend
               </p>
             </div>
+
+            {/* Session Expired Banner */}
+            {isSessionExpired && !error && (
+              <div
+                className="login-alert-banner"
+                style={{
+                  borderColor: 'rgba(234, 179, 8, 0.4)',
+                  background: 'rgba(234, 179, 8, 0.12)',
+                  marginBottom: '16px',
+                }}
+              >
+                <Clock size={18} className="alert-icon" style={{ color: '#eab308' }} />
+                <div className="alert-content">
+                  <div className="alert-title" style={{ color: '#fef08a' }}>Session Expired</div>
+                  <div className="alert-msg" style={{ color: '#fef9c3' }}>
+                    Your authentication token has expired. Please log in again to continue.
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Alert / Error Banner */}
             {error && (
@@ -421,7 +438,7 @@ export default function LoginPage() {
             </div>
             <div className="modal-body-section" style={{ padding: '20px' }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '14px' }}>
-                Because LibriCore connects with institutional databases and university SIS records,
+                Because Librix connects with institutional databases and university SIS records,
                 passwords are managed through your administrator.
               </p>
               <div

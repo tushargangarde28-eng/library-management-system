@@ -1,10 +1,11 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { authService, isTokenExpired } from '../../api/authService';
 import { ShieldAlert } from 'lucide-react';
 
 export default function ProtectedRoute({ children, allowedRoles }) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, token } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -38,8 +39,19 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // If token is missing or expired, redirect to login with expired indicator if previously had session
+  if (!isAuthenticated || (token && isTokenExpired(token))) {
+    const wasExpired = Boolean(token && isTokenExpired(token));
+    if (wasExpired) {
+      authService.clearSession();
+    }
+    return (
+      <Navigate
+        to={wasExpired ? '/login?expired=true' : '/login'}
+        state={{ from: location }}
+        replace
+      />
+    );
   }
 
   // Enforce role separation

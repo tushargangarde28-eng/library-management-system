@@ -41,6 +41,8 @@ export default function Topbar({ onRefresh, isRefreshing, apiStatus, onMobileTog
         return { title: 'Members Directory', subtitle: 'Manage library users, roles, and membership status' };
       case '/loans':
         return { title: 'Circulation & Loans', subtitle: 'Live book checkout, return processing, and patron loan tracking' };
+      case '/reports':
+        return { title: 'Overdue Audit & Penalties', subtitle: 'Real-time compliance monitoring, overdue fines and patron liability audit' };
       default:
         return { title: 'Executive Overview', subtitle: 'Real-time library metrics, inventory health & quick actions' };
     }

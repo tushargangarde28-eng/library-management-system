@@ -54,13 +54,13 @@ export default function ReturnBookModal({
     }
   }, [isOpen, loanToReturn]);
 
-  // Find loan details from available active loans, loanToReturn, or local cache
+  // Find loan details from available active loans or loanToReturn
   const matchedLoan =
     (loanToReturn && String(loanToReturn.loanId) === String(loanId))
       ? loanToReturn
       : availableLoans.find((l) => String(l.loanId) === String(loanId)) ||
         activeLoans.find((l) => String(l.loanId) === String(loanId)) ||
-        loanService.getRecordedLoanById(loanId);
+        null;
 
   const validate = () => {
     const errs = {};

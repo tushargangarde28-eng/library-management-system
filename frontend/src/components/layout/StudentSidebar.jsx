@@ -92,11 +92,11 @@ export default function StudentSidebar({ collapsed, onToggle, mobileOpen, onMobi
 
           {!collapsed && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
-                Libri<span style={{ color: '#34d399' }}>Campus</span>
+              <span style={{ fontWeight: 900, fontSize: '1.2rem', letterSpacing: '-0.03em', color: '#ffffff', display: 'flex', alignItems: 'center' }}>
+                Libri<span style={{ background: 'linear-gradient(135deg, #34d399 0%, #06b6d4 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>x</span>
               </span>
-              <span style={{ fontSize: '0.65rem', color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-                Student Portal
+              <span style={{ fontSize: '0.62rem', color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                Student Campus
               </span>
             </div>
           )}

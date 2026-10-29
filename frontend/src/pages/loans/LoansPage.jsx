@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeftRight,
   Plus,
@@ -32,6 +33,7 @@ import ReturnBookModal from './ReturnBookModal';
 import LoanReceiptModal from './LoanReceiptModal';
 
 export default function LoansPage() {
+  const navigate = useNavigate();
   // Server-side pagination & query state
   const [loans, setLoans] = useState([]);
   const [page, setPage] = useState(0);
@@ -100,7 +102,10 @@ export default function LoansPage() {
       setTotalPages(result.totalPages ?? 0);
     } catch (err) {
       console.error('[LoansPage] Error fetching loans from /api/loans:', err);
-      showToast('Could not fetch loans from backend API. Using local cache.', 'warning');
+      showToast(err.message || 'Could not fetch loans from backend API.', 'error');
+      setLoans([]);
+      setTotalElements(0);
+      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -211,6 +216,19 @@ export default function LoansPage() {
         </div>
 
         <div className="header-actions-wrap">
+          <button
+            onClick={() => navigate('/reports')}
+            className="btn btn-secondary"
+            style={{
+              borderColor: 'rgba(239, 68, 68, 0.35)',
+              color: '#f87171',
+            }}
+            title="Open live Overdue Loans & Penalties Report"
+          >
+            <AlertTriangle size={15} />
+            <span>Overdue Report</span>
+          </button>
+
           <button
             onClick={() => {
               fetchLoans();
@@ -654,7 +672,7 @@ export default function LoansPage() {
                               {loan.returnDate}
                             </span>
                             <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                              Fine: ${Number(loan.fine || 0).toFixed(2)}
+                              Fine: ₹{Number(loan.fine || 0).toFixed(2)}
                             </span>
                           </div>
                         ) : (
