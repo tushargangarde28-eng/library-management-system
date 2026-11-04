@@ -288,6 +288,40 @@ export default function StudentSidebar({ collapsed, onToggle, mobileOpen, onMobi
           </div>
         )}
       </div>
+
+      {/* Mobile drawer styles for student portal */}
+      <style>{`
+        @media (max-width: 1024px) {
+          .sidebar-nav {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            height: 100vh !important;
+            width: 260px !important;
+            z-index: 50 !important;
+            transform: translateX(-100%);
+            box-shadow: 0 0 35px rgba(0, 0, 0, 0.85);
+          }
+          .sidebar-nav.mobile-open {
+            transform: translateX(0) !important;
+          }
+          .desktop-collapse-btn {
+            display: none !important;
+          }
+          .mobile-close-btn {
+            display: block !important;
+          }
+        }
+        @media (min-width: 1025px) {
+          .mobile-close-btn {
+            display: none !important;
+          }
+          .desktop-collapse-btn {
+            display: block !important;
+          }
+        }
+      `}</style>
     </aside>
   );
 }

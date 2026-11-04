@@ -10,6 +10,7 @@ import BooksPage from './pages/books/BooksPage';
 import MembersPage from './pages/members/MembersPage';
 import LoansPage from './pages/loans/LoansPage';
 import OverdueReportsPage from './pages/reports/OverdueReportsPage';
+import LoanPolicyPage from './pages/settings/LoanPolicyPage';
 
 // Student Workspace
 import StudentLayout from './components/layout/StudentLayout';
@@ -113,6 +114,7 @@ export default function App() {
             <Route path="/members" element={<MembersPage />} />
             <Route path="/loans" element={<LoansPage />} />
             <Route path="/reports" element={<OverdueReportsPage />} />
+            <Route path="/settings" element={<LoanPolicyPage />} />
           </Route>
 
           {/* Catch-all fallback */}

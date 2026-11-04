@@ -9,6 +9,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { loanService } from '../../api/loanService';
 
 export default function StudentTopbar({ onRefresh, isRefreshing, apiStatus, onMobileToggle }) {
   const location = useLocation();
@@ -16,6 +17,7 @@ export default function StudentTopbar({ onRefresh, isRefreshing, apiStatus, onMo
   const { user, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [borrowingLimit, setBorrowingLimit] = useState(() => loanService.getActiveConfig()?.borrowingLimit || 3);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -25,6 +27,12 @@ export default function StudentTopbar({ onRefresh, isRefreshing, apiStatus, onMo
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    loanService.getLoanConfiguration().then((cfg) => {
+      if (cfg?.borrowingLimit) setBorrowingLimit(cfg.borrowingLimit);
+    }).catch(() => {});
   }, []);
 
   const handleLogout = () => {
@@ -231,7 +239,7 @@ export default function StudentTopbar({ onRefresh, isRefreshing, apiStatus, onMo
                     STUDENT
                   </span>
                   <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                    Quota: 3 Books Max
+                    Quota: {borrowingLimit} Books Max
                   </span>
                 </div>
               </div>
@@ -255,6 +263,27 @@ export default function StudentTopbar({ onRefresh, isRefreshing, apiStatus, onMo
           )}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .topbar-hamburger {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 1025px) {
+          .topbar-hamburger {
+            display: none !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .topbar-subtitle {
+            display: none !important;
+          }
+          .topbar-header {
+            padding: 0 14px !important;
+          }
+        }
+      `}</style>
     </header>
   );
 }

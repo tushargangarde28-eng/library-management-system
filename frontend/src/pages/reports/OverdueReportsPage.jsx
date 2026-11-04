@@ -338,13 +338,7 @@ export default function OverdueReportsPage() {
       </div>
 
       {/* KPI Metric Summary Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-          gap: '16px',
-        }}
-      >
+      <div className="responsive-kpi-grid">
         <StatCard
           title="Total Overdue Loans"
           value={stats.totalOverdue}

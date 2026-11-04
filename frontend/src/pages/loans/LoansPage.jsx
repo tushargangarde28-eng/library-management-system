@@ -21,6 +21,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Sliders,
   X
 } from 'lucide-react';
 import StatCard from '../../components/common/StatCard';
@@ -55,6 +56,9 @@ export default function LoansPage() {
     overdue: 0,
     totalFines: 0,
   });
+
+  // Dynamic Loan Configuration from GET /api/loan-configuration
+  const [loanConfig, setLoanConfig] = useState(() => loanService.getActiveConfig());
 
   // Modals state
   const [isBorrowModalOpen, setIsBorrowModalOpen] = useState(false);
@@ -111,13 +115,19 @@ export default function LoansPage() {
     }
   }, [page, pageSize, debouncedSearch, sortBy, direction, statusFilter]);
 
-  // Fetch full dataset for accurate KPI stats
+  // Fetch full dataset for accurate KPI stats and dynamic policy configuration
   const fetchStats = useCallback(async () => {
     try {
-      const allRecords = await loanService.getAllLoans({ size: 100 });
+      const [allRecords, config] = await Promise.all([
+        loanService.getAllLoans({ size: 100 }).catch(() => []),
+        loanService.getLoanConfiguration().catch(() => loanService.getActiveConfig()),
+      ]);
       setStats(loanService.getLoanStats(allRecords));
+      if (config) {
+        setLoanConfig(config);
+      }
     } catch (err) {
-      console.warn('[LoansPage] Error refreshing loan statistics:', err);
+      console.warn('[LoansPage] Error refreshing loan statistics & policy:', err);
     }
   }, []);
 
@@ -217,6 +227,19 @@ export default function LoansPage() {
 
         <div className="header-actions-wrap">
           <button
+            onClick={() => navigate('/settings')}
+            className="btn btn-secondary"
+            style={{
+              borderColor: 'rgba(99, 102, 241, 0.35)',
+              color: 'var(--primary-light)',
+            }}
+            title="Configure loan limits, duration and fine policy (GET/PUT /api/loan-configuration)"
+          >
+            <Sliders size={15} />
+            <span>Loan Policy</span>
+          </button>
+
+          <button
             onClick={() => navigate('/reports')}
             className="btn btn-secondary"
             style={{
@@ -289,19 +312,21 @@ export default function LoansPage() {
         <StatCard
           title="Overdue Notices"
           value={stats.overdue}
-          subtitle={stats.overdue > 0 ? 'Exceeded 8-day limit' : 'All loans in good standing'}
+          subtitle={stats.overdue > 0 ? `Exceeded ${loanConfig?.periodDays || 8}-day limit` : 'All loans in good standing'}
           icon={AlertTriangle}
           badge={stats.overdue > 0 ? 'Action Req.' : 'Clear'}
           badgeType={stats.overdue > 0 ? 'warning' : 'active'}
+          onClick={() => navigate('/reports')}
         />
 
         <StatCard
           title="Circulation Policy"
-          value="8 Days"
-          subtitle="Limit: 3 books per member"
+          value={`${loanConfig?.periodDays || 8} Days`}
+          subtitle={`Limit: ${loanConfig?.borrowingLimit || 3} books • ₹${Number(loanConfig?.finePerDay !== undefined ? loanConfig.finePerDay : 5).toFixed(2)}/d`}
           icon={Clock}
-          badge="Enforced"
+          badge="Live Policy"
           badgeType="info"
+          onClick={() => navigate('/settings')}
         />
       </div>
 

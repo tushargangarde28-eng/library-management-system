@@ -28,6 +28,7 @@ export default function BorrowBookModal({
   const [members, setMembers] = useState([]);
   const [books, setBooks] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [policyConfig, setPolicyConfig] = useState(() => loanService.getActiveConfig());
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState(null);
@@ -46,13 +47,17 @@ export default function BorrowBookModal({
   const loadMembersAndBooks = async () => {
     setLoadingData(true);
     try {
-      const [membersRes, booksRes] = await Promise.all([
+      const [membersRes, booksRes, configRes] = await Promise.all([
         memberService.getMembers({ status: 'ACTIVE', size: 100 }).catch(() => ({ content: [] })),
         bookService.getBooks({ size: 100 }).catch(() => ({ content: [] })),
+        loanService.getLoanConfiguration().catch(() => loanService.getActiveConfig()),
       ]);
 
       setMembers(membersRes?.content || []);
       setBooks(booksRes?.content || []);
+      if (configRes) {
+        setPolicyConfig(configRes);
+      }
     } catch (err) {
       console.warn('[BorrowBookModal] Error pre-fetching members or books:', err);
     } finally {
@@ -66,10 +71,13 @@ export default function BorrowBookModal({
   const selectedBook = books.find((b) => String(b.bookId) === String(selectedBookId)) || 
     (preselectedBook && String(preselectedBook.bookId) === String(selectedBookId) ? preselectedBook : null);
 
-  // Exact 8-day loan calculation as defined in backend application.properties
+  const currentPeriodDays = policyConfig?.periodDays || LOAN_PERIOD_DAYS;
+  const currentBorrowingLimit = policyConfig?.borrowingLimit || BORROWING_LIMIT;
+
+  // Exact loan duration calculation as defined in backend database configuration
   const today = new Date();
   const dueDate = new Date();
-  dueDate.setDate(today.getDate() + LOAN_PERIOD_DAYS);
+  dueDate.setDate(today.getDate() + currentPeriodDays);
 
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -171,7 +179,7 @@ export default function BorrowBookModal({
               Active Member <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-              Limit: {BORROWING_LIMIT} books max
+              Limit: {currentBorrowingLimit} books max
             </span>
           </div>
 
@@ -363,7 +371,7 @@ export default function BorrowBookModal({
 
             <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
               <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>Loan Duration</span>
-              <strong style={{ fontSize: '0.82rem', color: 'var(--accent-cyan)' }}>{LOAN_PERIOD_DAYS} Days</strong>
+              <strong style={{ fontSize: '0.82rem', color: 'var(--accent-cyan)' }}>{currentPeriodDays} Days</strong>
             </div>
 
             <div style={{ backgroundColor: 'var(--bg-surface-elevated)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
@@ -375,7 +383,7 @@ export default function BorrowBookModal({
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Info size={13} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
             <span>
-              Backend limits patrons to <strong>{BORROWING_LIMIT} active loans</strong> and decrements available copies in database.
+              Backend limits patrons to <strong>{currentBorrowingLimit} active loans</strong> and decrements available copies in database.
             </span>
           </div>
         </div>
