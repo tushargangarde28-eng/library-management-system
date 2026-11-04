@@ -509,6 +509,27 @@ input, select, textarea {
   gap: 20px;
 }
 
+/* Fluid Responsive 2-Column App Grids */
+.student-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+
+.loan-policy-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .student-dashboard-grid,
+  .loan-policy-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 /* Responsive Header Actions */
 .header-actions-wrap {
   display: flex;
@@ -520,7 +541,49 @@ input, select, textarea {
 /* Responsive Breakpoints */
 @media (max-width: 1024px) {
   .content-container {
-    padding: 22px 22px 44px;
+    padding: 22px 20px 44px;
+  }
+
+  .sidebar-nav {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    width: 260px !important;
+    z-index: 50 !important;
+    transform: translateX(-100%);
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.85);
+  }
+
+  .sidebar-nav.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .desktop-collapse-btn {
+    display: none !important;
+  }
+
+  .mobile-close-btn {
+    display: block !important;
+  }
+
+  .topbar-hamburger {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .mobile-close-btn {
+    display: none !important;
+  }
+
+  .desktop-collapse-btn {
+    display: block !important;
+  }
+
+  .topbar-hamburger {
+    display: none !important;
   }
 }
 

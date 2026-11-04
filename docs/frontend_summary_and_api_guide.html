@@ -625,6 +625,54 @@
                 </p>
               </div>
             </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Dynamic Loan Policy Dashboard (<code>GET</code> &
+                  <code>PUT /api/loan-configuration</code>):</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Created <code>LoanPolicyPage.jsx</code> at
+                  route <code>/settings</code>. Provides live interactive sliders and input fields for administrators to
+                  reconfigure borrowing limits (1–20 books), duration (1–90 days), and daily overdue fine rates
+                  (₹0–₹500/day).
+                </p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Student Self-Service Circulation (Borrow & Return):</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Empowered students to self-checkout books via
+                  <code>StudentBorrowModal.jsx</code> (with live stock decrements) and self-return active loans via
+                  <code>StudentLoansPage.jsx</code> and <code>StudentDashboardPage.jsx</code> with overdue fee
+                  calculations and printable return dockets.
+                </p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Live Circulation Policy Integration in Loans Page:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Fixed hardcoded "8 Days" policy display in
+                  <code>LoansPage.jsx</code> ("Circulation & Loan Operations"). The Circulation Policy and Overdue
+                  Notices cards now
+                  automatically query and reflect database configuration (<code>periodDays</code>,
+                  <code>borrowingLimit</code>, <code>finePerDay</code>) from <code>GET /api/loan-configuration</code>
+                  with 1-click navigation to settings.
+                </p>
+              </div>
+            </li>
+            <li style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="color: var(--accent-emerald); font-weight: 800; font-size: 1.1rem;">✓</span>
+              <div>
+                <strong>Comprehensive Cross-Device Responsive Overhaul:</strong>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Engineered responsive layouts for all Admin and
+                  Student screens.
+                  Sidebars transform into full-height off-canvas drawers with backdrop blurs on viewports &le; 1024px,
+                  2-column grids (Dashboard, Policy Editor) collapse to 1-column on mobile/tablet, and data tables
+                  maintain touch-friendly horizontal scroll containers.
+                </p>
+              </div>
+            </li>
           </ul>
         </section>
 
@@ -635,7 +683,7 @@
             <h2 class="section-title">Complete API Integration Blueprint</h2>
           </div>
           <p class="lead-p">
-            Complete inventory of all 17 Spring Boot backend endpoints integrated into the frontend application:
+            Complete inventory of all 19 Spring Boot backend endpoints integrated into the frontend application:
           </p>
 
           <div class="api-table-wrap">
@@ -775,19 +823,21 @@
                 <!-- 14. Borrow Book -->
                 <tr>
                   <td><span class="method post">POST</span> <code>/api/loans/borrow</code></td>
-                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><span class="role-badge role-public">ADMIN / STUDENT</span></td>
                   <td><code>{ memberId, bookId }</code></td>
                   <td><code>LoanResponse</code> (HTTP 201 Created, status: "ACTIVE")</td>
-                  <td><code>loanService.borrowBook()</code><br><code>BorrowBookModal.jsx</code></td>
+                  <td><code>loanService.borrowBook()</code><br><code>BorrowBookModal.jsx</code>
+                    (Admin),<br><code>StudentBorrowModal.jsx</code> (Student)</td>
                 </tr>
 
                 <!-- 15. Return Book -->
                 <tr>
                   <td><span class="method put">PUT</span> <code>/api/loans/{id}/return</code></td>
-                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><span class="role-badge role-public">ADMIN / STUDENT</span></td>
                   <td><code>id</code> (Path variable)</td>
                   <td><code>LoanResponse</code> (status: "RETURNED", fine computed)</td>
-                  <td><code>loanService.returnBook()</code><br><code>ReturnBookModal.jsx</code></td>
+                  <td><code>loanService.returnBook()</code><br><code>ReturnBookModal.jsx</code>
+                    (Admin),<br><code>StudentLoansPage.jsx</code> & <code>StudentDashboardPage.jsx</code> (Student)</td>
                 </tr>
 
                 <!-- 16. Overdue Loans -->
@@ -808,6 +858,26 @@
                   <td><code>loanService.getMyLoans()</code><br><code>StudentDashboardPage.jsx</code>,
                     <code>StudentLoansPage.jsx</code>
                   </td>
+                </tr>
+
+                <!-- 18. Get Loan Configuration -->
+                <tr>
+                  <td><span class="method get">GET</span> <code>/api/loan-configuration</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td>Bearer Token Header (hasAuthority: CONFIGURATION_MANAGE)</td>
+                  <td><code>LoanConfiguration</code> (id, borrowingLimit, periodDays, finePerDay, updatedAt)</td>
+                  <td><code>loanService.getLoanConfiguration()</code><br><code>LoanPolicyPage.jsx</code>,
+                    <code>BorrowBookModal.jsx</code>, <code>StudentBorrowModal.jsx</code>
+                  </td>
+                </tr>
+
+                <!-- 19. Update Loan Configuration -->
+                <tr>
+                  <td><span class="method put">PUT</span> <code>/api/loan-configuration</code></td>
+                  <td><span class="role-badge role-admin">ADMIN</span></td>
+                  <td><code>{ borrowingLimit, periodDays, finePerDay }</code></td>
+                  <td><code>LoanConfiguration</code> (updated singleton configuration)</td>
+                  <td><code>loanService.updateLoanConfiguration()</code><br><code>LoanPolicyPage.jsx</code></td>
                 </tr>
               </tbody>
             </table>
@@ -859,6 +929,20 @@
   <span class="json-key">"isbn"</span>: <span class="json-str">"978-0134494166"</span>,
   <span class="json-key">"totalCopies"</span>: <span class="json-num">10</span>,
   <span class="json-key">"availableCopies"</span>: <span class="json-num">8</span>
+<span class="json-key">}</span></code></pre>
+
+          <h3 style="font-size: 1.05rem; margin-top: 24px; color: #a5b4fc;">3. Loan Policy Configuration
+            (<code>LoanConfiguration</code>)</h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">
+            Singleton system entity that dynamically governs circulation constraints and overdue fee rates across both
+            Admin and Student portals:
+          </p>
+          <pre><code><span class="json-key">{</span>
+  <span class="json-key">"id"</span>: <span class="json-num">1</span>,
+  <span class="json-key">"borrowingLimit"</span>: <span class="json-num">3</span>,          <span class="desc">// Max concurrent active books per patron</span>
+  <span class="json-key">"periodDays"</span>: <span class="json-num">8</span>,              <span class="desc">// Standard circulation return deadline (days)</span>
+  <span class="json-key">"finePerDay"</span>: <span class="json-num">5.00</span>,           <span class="desc">// Overdue penalty assessed per day (₹)</span>
+  <span class="json-key">"updatedAt"</span>: <span class="json-str">"2026-11-03T10:15:00"</span>
 <span class="json-key">}</span></code></pre>
         </section>
 
@@ -982,7 +1066,7 @@
             <div>│ ├── <span class="file">bookService.js</span> <span class="desc"># CRUD /api/books with copy count
                 normalization</span></div>
             <div>│ ├── <span class="file">loanService.js</span> <span class="desc"># Circulation endpoints (/borrow,
-                /return, /myloans, /overdueLoans)</span></div>
+                /return, /myloans, /overdueLoans, /loan-configuration)</span></div>
             <div>│ └── <span class="file">memberService.js</span> <span class="desc"># Patron management and
                 authentication endpoints</span></div>
             <div>├── <span class="dir">components/</span></div>
@@ -1006,8 +1090,10 @@
                 DeactivateMemberModal</span></div>
             <div>│ ├── <span class="dir">reports/</span> <span class="desc"># OverdueReportsPage (overdue loans audit, ₹
                 fine metrics, CSV export)</span></div>
+            <div>│ ├── <span class="dir">settings/</span> <span class="desc"># LoanPolicyPage (/settings live dynamic
+                configuration editor)</span></div>
             <div>│ └── <span class="dir">student/</span> <span class="desc"># StudentDashboardPage, StudentBooksPage,
-                StudentLoansPage</span></div>
+                StudentBorrowModal, StudentLoansPage</span></div>
             <div>├── <span class="file">App.jsx</span> <span class="desc"># Router root, role dispatching, admin vs
                 student protected workspaces</span></div>
             <div>├── <span class="file">index.css</span> <span class="desc"># Librix design system, midnight gradients,

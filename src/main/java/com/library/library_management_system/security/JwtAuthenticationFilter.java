@@ -1,7 +1,8 @@
 
-        package com.library.library_management_system.security;
+package com.library.library_management_system.security;
 
 import com.library.library_management_system.service.JwtService;
+import com.library.library_management_system.service.PermissionService;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,14 +14,21 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final PermissionService permissionService;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(
+            JwtService jwtService,
+            PermissionService permissionService
+    ) {
         this.jwtService = jwtService;
+        this.permissionService = permissionService;
     }
 
     @Override
@@ -55,13 +63,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (SecurityContextHolder.getContext()
                         .getAuthentication() == null) {
 
+                    Set<String> permissions =
+                            permissionService.getPermissions(email);
+
+                    List<SimpleGrantedAuthority> authorities =
+                            new ArrayList<>();
+
+                    // Add role authority
+                    authorities.add(
+                            new SimpleGrantedAuthority("ROLE_" + role)
+                    );
+
+                    // Add database permissions
+                    permissions.forEach(permission ->
+                            authorities.add(
+                                    new SimpleGrantedAuthority(permission)
+                            )
+                    );
+
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(
                                     email,
                                     null,
-                                    List.of(
-                                            new SimpleGrantedAuthority("ROLE_" + role)
-                                    )
+                                    authorities
                             );
 
                     SecurityContextHolder.getContext()

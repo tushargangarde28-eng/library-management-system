@@ -1,213 +1,297 @@
-package com.library.library_management_system.service;
 
+package com.library.library_management_system.service;
 
 import com.library.library_management_system.dto.member.LoginRequest;
 import com.library.library_management_system.dto.member.LoginResponse;
-import com.library.library_management_system.exception.BusinessRuleException;
-import com.library.library_management_system.repository.MemberRepository;
 import com.library.library_management_system.dto.member.MemberRequest;
 import com.library.library_management_system.dto.member.MemberResponse;
 import com.library.library_management_system.entity.Member;
+import com.library.library_management_system.entity.Role;
+import com.library.library_management_system.entity.User;
+import com.library.library_management_system.exception.BusinessRuleException;
 import com.library.library_management_system.exception.DuplicateResourceException;
 import com.library.library_management_system.exception.ResourceNotFoundException;
+import com.library.library_management_system.repository.MemberRepository;
+import com.library.library_management_system.repository.RoleRepository;
+import com.library.library_management_system.repository.UserRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MemberServiceImpl implements MemberService {
 
+    private final JdbcTemplate jdbcTemplate;
+
     private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public MemberServiceImpl(MemberRepository memberRepository, PasswordEncoder passwordEncoder, JwtService jwtService){
-        this.memberRepository = memberRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+    public MemberServiceImpl(
+            MemberRepository memberRepository,
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder,
+            JdbcTemplate jdbcTemplate,
+            JwtService jwtService) {
 
+        this.memberRepository = memberRepository;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
+        this.jwtService = jwtService;
     }
 
+
     @Override
+    @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
 
-        Member member = memberRepository.findByEmail(request.getEmail())
-                .orElseThrow(() ->
-                        new BusinessRuleException("Invalid email or password"));
+        System.out.println("========== LOGIN DEBUG ==========");
+        System.out.println("Email received: [" + request.getEmail() + "]");
 
-        if (! passwordEncoder.matches(request.getPassword(),member.getPasswordHash())){
+        // 1. Check database directly using JdbcTemplate
+        System.out.println("Database: " +
+                jdbcTemplate.queryForObject(
+                        "SELECT DATABASE()", String.class));
+
+        System.out.println("SQL Users Count: " +
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM users", Long.class));
+
+        System.out.println("ADMIN Exists: " +
+                jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM users WHERE email = ?",
+                        Long.class,
+                        request.getEmail().trim()));
+
+        // 2. Check database using JPA
+        System.out.println("JPA Users Count: " + userRepository.count());
+        System.out.println("JPA Members Count: " + memberRepository.count());
+
+        // 3. Find user by email
+        User user = userRepository.findByEmail(
+                request.getEmail().trim()
+        ).orElse(null);
+
+        if (user == null) {
+            System.out.println("RESULT: USER NOT FOUND");
+            System.out.println("=================================");
+
             throw new BusinessRuleException("Invalid email or password");
         }
 
-        if (member.getStatus() != Member.Status.ACTIVE){
-            throw new BusinessRuleException("Member account is inactive");
-        }
+        System.out.println("RESULT: USER FOUND");
+        System.out.println("User ID: " + user.getUserId());
+        System.out.println("Email: " + user.getEmail());
+        System.out.println("Status: " + user.getStatus());
 
-        String token = jwtService.generateToken(
-                member.getEmail(),
-                member.getRole().name()
+        // 4. Verify password
+        boolean passwordMatches = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPasswordHash()
         );
 
+        System.out.println("Password matches: " + passwordMatches);
 
+        if (!passwordMatches) {
+            System.out.println("RESULT: INVALID PASSWORD");
+            System.out.println("=================================");
+
+            throw new BusinessRuleException("Invalid email or password");
+        }
+
+        // 5. Check user account status
+        if (user.getStatus() != User.Status.ACTIVE) {
+            System.out.println("RESULT: ACCOUNT INACTIVE");
+            System.out.println("=================================");
+
+            throw new BusinessRuleException("User account is inactive");
+        }
+
+        // 6. Get user role
+        String roleName = user.getRole().getRoleName();
+
+        System.out.println("User Role: " + roleName);
+
+        // 7. Generate JWT token
+        String token = jwtService.generateToken(
+                user.getEmail(),
+                roleName
+        );
+
+        // 8. Prepare login response
         LoginResponse response = new LoginResponse();
+
         response.setMessage("Login Successful");
-        response.setMemberId(member.getMemberId());
-        response.setName(member.getName());
-        response.setEmail(member.getEmail());
-        response.setRole(member.getRole().name());
+        response.setEmail(user.getEmail());
+        response.setRole(roleName);
         response.setToken(token);
 
+        // 9. Load member details for STUDENT or ADMIN
+        memberRepository.findByUser_Email(user.getEmail()).ifPresent(member -> {
+            response.setMemberId(member.getMemberId());
+            response.setName(member.getName());
+        });
 
+        // Fallback name if admin profile record does not exist
+        if (response.getName() == null) {
+            response.setName("ADMIN".equalsIgnoreCase(roleName) ? "System Administrator" : "User");
+        }
         return response;
     }
 
-    // Crete Member
-    @Override
-    public MemberResponse createMember(MemberRequest request){
 
-        if(memberRepository.existsByEmail(request.getEmail())){
+    // Create Member
+    @Override
+    @Transactional
+    public MemberResponse createMember(MemberRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException(
-                    "Member with This email already exists"
-            );
+                    "User with this email already exists");
         }
 
+        if (request.getPassword() == null ||
+                request.getPassword().isBlank()) {
+            throw new BusinessRuleException("Password is required");
+        }
+
+        Role studentRole = roleRepository.findByRoleName("STUDENT")
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "STUDENT role not found"));
+
+        User user = new User();
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(
+                passwordEncoder.encode(request.getPassword()));
+        user.setRole(studentRole);
+        user.setStatus(User.Status.ACTIVE);
+
+        User savedUser = userRepository.save(user);
+
         Member member = new Member();
+        member.setUser(savedUser);
         member.setName(request.getName());
-        member.setEmail(request.getEmail());
         member.setPhone(request.getPhone());
-
-        member.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
 
         Member savedMember = memberRepository.save(member);
 
-        MemberResponse response = new MemberResponse();
-
-        response.setMemberId(savedMember.getMemberId());
-        response.setName(savedMember.getName());
-        response.setEmail(savedMember.getEmail());
-        response.setPhone(savedMember.getPhone());
-        response.setRole(savedMember.getRole().name());
-        response.setStatus(savedMember.getStatus().name());
-        response.setCreatedAt(savedMember.getCreatedAt());
-        response.setUpdatedAt(savedMember.getUpdatedAt());
-
-        return response;
+        return toResponse(savedMember);
     }
 
     // Get Member By ID
     @Override
+    @Transactional(readOnly = true)
     public MemberResponse getMemberById(Long memberId) {
+
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Member not found with Id "+memberId));
-        MemberResponse response = new MemberResponse();
-        response.setMemberId(member.getMemberId());
-        response.setName(member.getName());
-        response.setEmail(member.getEmail());
-        response.setPhone(member.getPhone());
-        response.setRole(member.getRole().name());
-        response.setStatus(member.getStatus().name());
-        response.setCreatedAt(member.getCreatedAt());
-        response.setUpdatedAt(member.getUpdatedAt());
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Member not found with Id " + memberId));
 
-        return response;
-
+        return toResponse(member);
     }
 
-
-
+    // Get All Student Members
     @Override
+    @Transactional(readOnly = true)
     public Page<MemberResponse> getAllMembers(Pageable pageable) {
-        return memberRepository.findByRole(Member.Role.STUDENT, pageable)
+
+        return memberRepository.findByUser_Role_RoleName(
+                "STUDENT", pageable
+        ).map(this::toResponse);
+    }
+
+    // Search Members
+    @Override
+    @Transactional(readOnly = true)
+    public Page<MemberResponse> searchMember(
+            String search, Pageable pageable) {
+
+        return memberRepository
+                .findByNameContainingIgnoreCaseOrUser_EmailContainingIgnoreCase(
+                        search, search, pageable)
                 .map(this::toResponse);
     }
 
-
+    // Get Members By Status
     @Override
-    public Page<MemberResponse> searchMember(String search, Pageable pageable){
-        return memberRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search,pageable)
-                .map(this::toResponse);
-    }
+    @Transactional(readOnly = true)
+    public Page<MemberResponse> getMemberByStatus(
+            String status, Pageable pageable) {
 
-    @Override
-    public Page<MemberResponse> getMemberByStatus(String status, Pageable pageable){
-
-        Member.Status memberStatus;
+        User.Status userStatus;
 
         try {
-            memberStatus = Member.Status.valueOf(status.toUpperCase());
-        }catch (IllegalArgumentException | NullPointerException ex){
+            userStatus = User.Status.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException ex) {
             throw new IllegalArgumentException(
-                    "Invalid status. Allowed values : ACTIVE , INACTIVE"
-            );
+                    "Invalid status. Allowed values: ACTIVE, INACTIVE");
         }
-        return memberRepository.findByStatus(memberStatus,pageable)
-                .map(this::toResponse);
 
+        return memberRepository.findByUser_Status(
+                userStatus, pageable
+        ).map(this::toResponse);
     }
 
-    // Update Member 
+    // Update Member
     @Override
-    public MemberResponse updateMember(Long memberId, MemberRequest request) {
+    @Transactional
+    public MemberResponse updateMember(
+            Long memberId, MemberRequest request) {
 
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Member not found with Id "+memberId));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Member not found with Id " + memberId));
 
+        member.setName(request.getName());
+        member.setPhone(request.getPhone());
 
-            member.setName(request.getName());
-            member.setPhone(request.getPhone());
+        Member updatedMember = memberRepository.save(member);
 
-            Member updatedMember = memberRepository.save(member);
-
-            MemberResponse response = new MemberResponse();
-            response.setMemberId(updatedMember.getMemberId());
-            response.setName(updatedMember.getName());
-            response.setPhone(updatedMember.getPhone());
-            response.setEmail(member.getEmail());
-            response.setRole(updatedMember.getRole().name());
-            response.setStatus(updatedMember.getStatus().name());
-            response.setCreatedAt(updatedMember.getCreatedAt());
-            response.setUpdatedAt(updatedMember.getUpdatedAt());
-
-            return response;
+        return toResponse(updatedMember);
     }
 
-
-    // Delete Member by Id
+    // Deactivate Member
     @Override
+    @Transactional
     public MemberResponse deactivateMember(Long memberId) {
 
-            Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Member not found with Id "+memberId));
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Member not found with Id " + memberId));
 
-            member.setStatus(Member.Status.INACTIVE);
+        member.getUser().setStatus(User.Status.INACTIVE);
+        userRepository.save(member.getUser());
+        memberRepository.save(member);
 
-            Member updateMember = memberRepository.save(member);
-
-        MemberResponse response = new MemberResponse();
-
-        response.setStatus(updateMember.getStatus().name());
-        response.setUpdatedAt(updateMember.getUpdatedAt());
-        return response;
+        return toResponse(member);
     }
 
+    // Convert Entity To Response DTO
     private MemberResponse toResponse(Member member) {
+
         MemberResponse response = new MemberResponse();
 
         response.setMemberId(member.getMemberId());
         response.setName(member.getName());
-        response.setEmail(member.getEmail());
+        response.setEmail(member.getUser().getEmail());
         response.setPhone(member.getPhone());
-        response.setRole(member.getRole().name());
-        response.setStatus(member.getStatus().name());
+        response.setRole(member.getUser().getRole().getRoleName());
+        response.setStatus(member.getUser().getStatus().name());
         response.setCreatedAt(member.getCreatedAt());
         response.setUpdatedAt(member.getUpdatedAt());
 
         return response;
     }
-
 }

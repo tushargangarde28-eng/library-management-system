@@ -1,8 +1,11 @@
- package com.library.library_management_system.config;
+package com.library.library_management_system.config;
 
 import com.library.library_management_system.security.JwtAuthenticationFilter;
 import com.library.library_management_system.service.JwtService;
+import com.library.library_management_system.service.PermissionService;
+
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -11,12 +14,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
@@ -27,11 +31,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtService jwtService
+            JwtService jwtService,
+            PermissionService permissionService
     ) throws Exception {
 
         JwtAuthenticationFilter jwtAuthenticationFilter =
-                new JwtAuthenticationFilter(jwtService);
+                new JwtAuthenticationFilter(jwtService, permissionService);
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -46,9 +51,7 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
 
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(
-                                    HttpServletResponse.SC_UNAUTHORIZED
-                            );
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
                             response.setCharacterEncoding("UTF-8");
 
@@ -58,9 +61,7 @@ public class SecurityConfig {
                         })
 
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(
-                                    HttpServletResponse.SC_FORBIDDEN
-                            );
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
                             response.setCharacterEncoding("UTF-8");
 
@@ -73,6 +74,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // Public endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/members").permitAll()
                         .requestMatchers(
                                 "/api/members/register",
                                 "/api/members/login",
@@ -83,29 +85,11 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // Books: ADMIN and STUDENT can read
-                        .requestMatchers(HttpMethod.GET, "/api/books/**")
-                        .hasAnyRole("ADMIN", "STUDENT")
+                        // Member authorization handled by @PreAuthorize
+                        .requestMatchers("/api/members/**").authenticated()
 
-                        // Books: only ADMIN can create, update or delete
-                        .requestMatchers("/api/books/**")
-                        .hasRole("ADMIN")
-
-                        // Members: only ADMIN
-                        .requestMatchers("/api/members/**")
-                        .hasRole("ADMIN")
-
-
-                        .requestMatchers(HttpMethod.GET,"/api/loans/myloans")
-                        .hasRole("STUDENT")
-
-
-                        // Loans: ADMIN
-                        .requestMatchers("/api/loans/**")
-                        .hasRole("ADMIN")
-
-
-
+                        // Loan authorization handled by @PreAuthorize
+                        .requestMatchers("/api/loans/**").authenticated()
 
                         // Other endpoints
                         .anyRequest().authenticated()

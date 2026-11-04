@@ -2,6 +2,7 @@
 package com.library.library_management_system.entity;
 
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -45,9 +46,14 @@ public class Loan {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
     public enum Status {
         ACTIVE,
-        RETURNED
+        RETURNED,
+        OVERDUE
     }
 
     public Loan() {
@@ -137,11 +143,11 @@ public class Loan {
         return updatedAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public User getUpdatedBy() {
+        return updatedBy;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setUpdatedBy(User updatedBy) {
+        this.updatedBy = updatedBy;
     }
 }

@@ -1,12 +1,12 @@
+
 package com.library.library_management_system.entity;
 
-
 import jakarta.persistence.*;
-import org.hibernate.annotations.AnyDiscriminatorImplicitValues;
-import org.springframework.aot.generate.GeneratedTypeReference;
+
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Books")
+@Table(name = "books")
 public class Book {
 
     @Id
@@ -14,10 +14,10 @@ public class Book {
     @Column(name = "book_id")
     private Long bookId;
 
-    @Column(name = "title", nullable = false,length = 200)
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
-    @Column(name = "author", nullable = false, length = 200)
+    @Column(name = "author", nullable = false, length = 150)
     private String author;
 
     @Column(name = "isbn", nullable = false, unique = true, length = 20)
@@ -26,14 +26,35 @@ public class Book {
     @Column(name = "total_copies", nullable = false)
     private Integer totalCopies;
 
-    @Column(name = "available_copies",nullable = false)
+    @Column(name = "available_copies", nullable = false)
     private Integer availableCopies;
 
-    public Book(){
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
+    public Book() {
     }
 
-    public Long getBookId(){
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Long getBookId() {
         return bookId;
     }
 
@@ -80,5 +101,20 @@ public class Book {
     public void setAvailableCopies(Integer availableCopies) {
         this.availableCopies = availableCopies;
     }
-}
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public User getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(User updatedBy) {
+        this.updatedBy = updatedBy;
+    }
+}

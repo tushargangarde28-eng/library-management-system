@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Server,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Sliders
 } from 'lucide-react';
 
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
@@ -44,6 +45,12 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       label: 'Overdue Reports',
       icon: AlertTriangle,
       badge: 'Audit',
+    },
+    {
+      to: '/settings',
+      label: 'Loan Policy',
+      icon: Sliders,
+      badge: 'Rules',
     },
   ];
 

@@ -1,8 +1,17 @@
 import { apiClient } from './client';
 
+export const DEFAULT_LOAN_CONFIG = {
+  borrowingLimit: 3,
+  periodDays: 8,
+  finePerDay: 5.0,
+};
+
 export const LOAN_PERIOD_DAYS = 8;
 export const BORROWING_LIMIT = 3;
 export const FINE_PER_DAY = 5;
+
+// In-memory active policy configuration
+let activeLoanConfig = { ...DEFAULT_LOAN_CONFIG };
 
 // Clean up any legacy offline loan storage to ensure clean state
 try {
@@ -37,7 +46,8 @@ export function enrichLoan(loan) {
   }
 
   const rawFine = loan.fine !== undefined && loan.fine !== null ? Number(loan.fine) : 0;
-  const accruedFine = isOverdue && rawFine === 0 ? daysOverdue * FINE_PER_DAY : rawFine;
+  const currentFineRate = activeLoanConfig?.finePerDay ?? FINE_PER_DAY;
+  const accruedFine = isOverdue && rawFine === 0 ? daysOverdue * currentFineRate : rawFine;
 
   return {
     ...loan,
@@ -52,6 +62,70 @@ export const loanService = {
   LOAN_PERIOD_DAYS,
   BORROWING_LIMIT,
   FINE_PER_DAY,
+
+  /**
+   * Fetch live loan configuration from backend database
+   * GET /api/loan-configuration
+   * @returns {Promise<LoanConfiguration>}
+   */
+  async getLoanConfiguration() {
+    try {
+      const config = await apiClient('/loan-configuration', {
+        method: 'GET',
+      });
+      if (config) {
+        activeLoanConfig = {
+          id: config.id,
+          borrowingLimit: Number(config.borrowingLimit) || DEFAULT_LOAN_CONFIG.borrowingLimit,
+          periodDays: Number(config.periodDays) || DEFAULT_LOAN_CONFIG.periodDays,
+          finePerDay: Number(config.finePerDay) !== undefined ? Number(config.finePerDay) : DEFAULT_LOAN_CONFIG.finePerDay,
+          updatedAt: config.updatedAt,
+        };
+      }
+      return activeLoanConfig;
+    } catch (err) {
+      console.warn('[loanService] Could not fetch remote loan configuration, using active/default:', err);
+      return activeLoanConfig;
+    }
+  },
+
+  /**
+   * Update loan configuration in backend database
+   * PUT /api/loan-configuration
+   * @param {Object} configData - { borrowingLimit: number, periodDays: number, finePerDay: number }
+   * @returns {Promise<LoanConfiguration>}
+   */
+  async updateLoanConfiguration(configData) {
+    const payload = {
+      borrowingLimit: Number(configData.borrowingLimit),
+      periodDays: Number(configData.periodDays),
+      finePerDay: Number(configData.finePerDay),
+    };
+
+    const response = await apiClient('/loan-configuration', {
+      method: 'PUT',
+      body: payload,
+    });
+
+    if (response) {
+      activeLoanConfig = {
+        id: response.id,
+        borrowingLimit: Number(response.borrowingLimit) || payload.borrowingLimit,
+        periodDays: Number(response.periodDays) || payload.periodDays,
+        finePerDay: Number(response.finePerDay) !== undefined ? Number(response.finePerDay) : payload.finePerDay,
+        updatedAt: response.updatedAt,
+      };
+    }
+
+    return activeLoanConfig;
+  },
+
+  /**
+   * Synchronous accessor for currently loaded configuration
+   */
+  getActiveConfig() {
+    return activeLoanConfig;
+  },
 
   /**
    * Fetch overdue loans directly from backend API
@@ -167,7 +241,7 @@ export const loanService = {
   },
 
   /**
-   * API 2: Borrow a book directly via backend API
+   * Borrow a book directly via backend API
    * POST /api/loans/borrow
    * @param {Object} payload - { memberId: number, bookId: number }
    * @returns {Promise<LoanResponse>}
@@ -188,7 +262,7 @@ export const loanService = {
     } catch (err) {
       if (err.status === 500) {
         err.friendlyMessage =
-          'Borrowing limit reached (max 3 active books per member) or book is unavailable. Please verify member active loans.';
+          'Borrowing limit reached or book is unavailable. Please verify member active loans.';
       } else if (err.status === 400) {
         err.friendlyMessage =
           err.message || 'Invalid borrow request. Member ID and Book ID must be positive integers.';
@@ -203,7 +277,7 @@ export const loanService = {
   },
 
   /**
-   * API 3: Return a book directly via backend API
+   * Return a book directly via backend API
    * PUT /api/loans/{id}/return
    * @param {number|string} loanId - Loan ID
    * @returns {Promise<LoanResponse>}
@@ -255,9 +329,9 @@ export const loanService = {
       returned: returned.length,
       overdue: overdue.length,
       totalFines,
-      borrowingLimit: BORROWING_LIMIT,
-      loanPeriodDays: LOAN_PERIOD_DAYS,
+      borrowingLimit: activeLoanConfig.borrowingLimit || BORROWING_LIMIT,
+      loanPeriodDays: activeLoanConfig.periodDays || LOAN_PERIOD_DAYS,
+      finePerDay: activeLoanConfig.finePerDay || FINE_PER_DAY,
     };
   },
-  
 };
