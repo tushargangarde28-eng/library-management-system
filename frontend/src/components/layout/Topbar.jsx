@@ -43,6 +43,8 @@ export default function Topbar({ onRefresh, isRefreshing, apiStatus, onMobileTog
         return { title: 'Circulation & Loans', subtitle: 'Live book checkout, return processing, and patron loan tracking' };
       case '/reports':
         return { title: 'Overdue Audit & Penalties', subtitle: 'Real-time compliance monitoring, overdue fines and patron liability audit' };
+      case '/settings':
+        return { title: 'Loan Policy & Configuration', subtitle: 'Manage borrowing limits, circulation durations, and daily penalty rules' };
       default:
         return { title: 'Executive Overview', subtitle: 'Real-time library metrics, inventory health & quick actions' };
     }

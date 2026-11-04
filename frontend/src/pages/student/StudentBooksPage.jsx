@@ -7,11 +7,19 @@ import {
   CheckCircle2, 
   XCircle, 
   Layers,
-  Info
+  Info,
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import { bookService } from '../../api/bookService';
+import { loanService } from '../../api/loanService';
+import { useAuth } from '../../context/AuthContext';
+import StudentBorrowModal from './StudentBorrowModal';
+import LoanReceiptModal from '../loans/LoanReceiptModal';
+import Toast from '../../components/common/Toast';
 
 export default function StudentBooksPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
 
@@ -20,6 +28,34 @@ export default function StudentBooksPage() {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [filterStock, setFilterStock] = useState('ALL'); // 'ALL' | 'AVAILABLE' | 'OUT_OF_STOCK'
   const [pagination, setPagination] = useState({ page: 0, size: 12, totalElements: 0, totalPages: 1 });
+
+  // Student active loans for quota tracking
+  const [activeLoansCount, setActiveLoansCount] = useState(0);
+
+  // Modals state
+  const [borrowModalBook, setBorrowModalBook] = useState(null);
+  const [isBorrowOpen, setIsBorrowOpen] = useState(false);
+  const [receiptLoan, setReceiptLoan] = useState(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+
+  // Toast
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  };
+
+  const fetchActiveLoans = useCallback(async () => {
+    try {
+      const myLoans = await loanService.getMyLoans();
+      const active = (myLoans || []).filter((l) => l.status === 'ACTIVE');
+      setActiveLoansCount(active.length);
+    } catch {
+      // Ignore quota fetch error in background
+    }
+  }, []);
 
   const fetchBooks = useCallback(async (page = 0, query = searchTerm) => {
     setLoading(true);
@@ -48,12 +84,26 @@ export default function StudentBooksPage() {
 
   useEffect(() => {
     fetchBooks(0, initialSearch);
-  }, [fetchBooks, initialSearch]);
+    fetchActiveLoans();
+  }, [fetchBooks, fetchActiveLoans, initialSearch]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setSearchParams(searchTerm.trim() ? { search: searchTerm.trim() } : {});
     fetchBooks(0, searchTerm);
+  };
+
+  const handleOpenBorrow = (book) => {
+    setBorrowModalBook(book);
+    setIsBorrowOpen(true);
+  };
+
+  const handleBorrowSuccess = (loanResponse) => {
+    showToast(`Successfully checked out "${borrowModalBook?.title || 'Book'}"! Loan #${loanResponse.loanId} active.`, 'success');
+    setReceiptLoan(loanResponse);
+    setIsReceiptOpen(true);
+    fetchBooks(pagination.page);
+    fetchActiveLoans();
   };
 
   const filteredBooks = books.filter((b) => {
@@ -63,25 +113,28 @@ export default function StudentBooksPage() {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>
-            Search Available Books
+            Search & Borrow Campus Books
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', margin: '4px 0 0' }}>
-            Browse the campus catalog and check live copy availability across library shelves.
+            Browse the campus catalog, check real-time stock, and instantly checkout titles to your account.
           </p>
         </div>
 
-        {/* Desk Advisory Badge */}
+        {/* Patron Quota Status Chip */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            padding: '8px 14px',
+            padding: '8px 16px',
             borderRadius: 'var(--radius-full)',
             background: 'var(--bg-surface-elevated)',
             border: '1px solid var(--border-subtle)',
@@ -89,8 +142,8 @@ export default function StudentBooksPage() {
             color: 'var(--text-secondary)',
           }}
         >
-          <Info size={14} style={{ color: '#38bdf8' }} />
-          <span>Physical checkout handled at Circulation Desk</span>
+          <Info size={15} style={{ color: '#38bdf8' }} />
+          <span>Active Quota: <strong style={{ color: activeLoansCount >= 3 ? 'var(--danger)' : '#34d399' }}>{activeLoansCount} Books</strong> currently on loan</span>
         </div>
       </div>
 
@@ -175,7 +228,7 @@ export default function StudentBooksPage() {
       {loading ? (
         <div className="responsive-card-grid">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="glass-card skeleton" style={{ height: '180px' }} />
+            <div key={i} className="glass-card skeleton" style={{ height: '220px' }} />
           ))}
         </div>
       ) : filteredBooks.length === 0 ? (
@@ -219,7 +272,7 @@ export default function StudentBooksPage() {
             return (
               <div
                 key={book.bookId}
-                className="glass-card"
+                className="glass-card card-hover-lift"
                 style={{
                   padding: '22px',
                   display: 'flex',
@@ -236,7 +289,7 @@ export default function StudentBooksPage() {
                       className={`badge ${isAvailable ? 'badge-active' : 'badge-inactive'}`}
                       style={{ fontSize: '0.72rem' }}
                     >
-                      {isAvailable ? `${book.availableCopies} Available on Shelf` : 'Checked Out by Patrons'}
+                      {isAvailable ? `${book.availableCopies} Copies on Shelf` : 'Fully Checked Out'}
                     </span>
                     <span className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       #{book.bookId}
@@ -289,28 +342,38 @@ export default function StudentBooksPage() {
                   </div>
                 </div>
 
-                {/* Desk Availability Indicator (View-Only, No borrow button) */}
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: isAvailable ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                    border: `1px solid ${isAvailable ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                    fontSize: '0.78rem',
-                    color: isAvailable ? '#34d399' : '#fca5a5',
-                    fontWeight: 600,
-                  }}
-                >
-                  <BookOpen size={14} />
-                  <span>
-                    {isAvailable
-                      ? 'Available at Circulation Desk'
-                      : 'Currently In Circulation'}
-                  </span>
+                {/* Action: Self-Service Borrow or Checked Out notice */}
+                <div>
+                  {isAvailable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenBorrow(book)}
+                      className="btn btn-primary"
+                      style={{ width: '100%', padding: '10px 14px' }}
+                    >
+                      <Plus size={16} />
+                      <span>Borrow This Book</span>
+                    </button>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        fontSize: '0.8rem',
+                        color: '#f87171',
+                        fontWeight: 600,
+                      }}
+                    >
+                      <XCircle size={15} />
+                      <span>Currently Unavailable</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -342,6 +405,31 @@ export default function StudentBooksPage() {
           </button>
         </div>
       )}
+
+      {/* Student Self-Service Borrow Modal */}
+      <StudentBorrowModal
+        isOpen={isBorrowOpen}
+        onClose={() => {
+          setIsBorrowOpen(false);
+          setBorrowModalBook(null);
+        }}
+        book={borrowModalBook}
+        studentMemberId={user?.memberId}
+        studentName={user?.name}
+        activeLoansCount={activeLoansCount}
+        onSuccess={handleBorrowSuccess}
+      />
+
+      {/* Official Checkout Slip Receipt Modal */}
+      <LoanReceiptModal
+        isOpen={isReceiptOpen}
+        onClose={() => {
+          setIsReceiptOpen(false);
+          setReceiptLoan(null);
+        }}
+        loan={receiptLoan}
+        isReturn={false}
+      />
     </div>
   );
 }

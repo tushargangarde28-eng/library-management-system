@@ -1,54 +1,53 @@
+
 package com.library.library_management_system.service;
 
 import com.library.library_management_system.dto.loan.LoanRequest;
 import com.library.library_management_system.dto.loan.LoanResponse;
 import com.library.library_management_system.entity.Book;
 import com.library.library_management_system.entity.Loan;
+import com.library.library_management_system.entity.LoanConfiguration;
 import com.library.library_management_system.entity.Member;
+import com.library.library_management_system.entity.User;
 import com.library.library_management_system.exception.BusinessRuleException;
 import com.library.library_management_system.exception.ResourceNotFoundException;
 import com.library.library_management_system.repository.BookRepository;
 import com.library.library_management_system.repository.LoanRepository;
 import com.library.library_management_system.repository.MemberRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.temporal.ChronoUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 @Service
 public class LoanService {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(LoanService.class);
+
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
+    private final LoanConfigurationService configurationService;
 
     public LoanService(
             LoanRepository loanRepository,
             BookRepository bookRepository,
-            MemberRepository memberRepository) {
+            LoanConfigurationService configurationService,
+            MemberRepository memberRepository
+    ) {
         this.loanRepository = loanRepository;
         this.bookRepository = bookRepository;
+        this.configurationService = configurationService;
         this.memberRepository = memberRepository;
     }
-
-    @Value("${library.loan.borrowing-limit}")
-    private long borrowingLimit;
-
-    @Value("${library.loan.period-days}")
-    private long loanPeriodDays;
-
-    @Value("${library.loan.fine-per-day}")
-    private BigDecimal finePerDay;
-
-    private static final Logger logger =
-            LoggerFactory.getLogger(LoanService.class);
 
     private Member getMemberOrThrow(Long memberId) {
 
@@ -58,7 +57,7 @@ public class LoanService {
                                 "Member not found with Id: " + memberId
                         ));
 
-        if (member.getStatus() != Member.Status.ACTIVE) {
+        if (member.getUser().getStatus() != User.Status.ACTIVE) {
             throw new BusinessRuleException(
                     "Inactive member cannot borrow books."
             );
@@ -67,25 +66,37 @@ public class LoanService {
         return member;
     }
 
-    private Book getBookOrThrow(Long bookId){
+    private Book getBookOrThrow(Long bookId) {
 
         return bookRepository.findById(bookId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Book Not Found with Id :"+bookId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Book Not Found with Id: " + bookId
+                        ));
     }
 
-    private void validateBorrowingLimit(Long memberId, long borrowingLimit){
-        long activeLoans = loanRepository.countByMember_MemberIdAndStatus(memberId, Loan.Status.ACTIVE);
+    private void validateBorrowingLimit(
+            Long memberId,
+            long borrowingLimit
+    ) {
+        long activeLoans =
+                loanRepository.countByMember_MemberIdAndStatus(
+                        memberId,
+                        Loan.Status.ACTIVE
+                );
 
-        if(activeLoans >= borrowingLimit ){
+        if (activeLoans >= borrowingLimit) {
             throw new BusinessRuleException(
                     "Member has reached the borrowing limit."
             );
         }
     }
 
-    private BigDecimal calculateFine(Loan loan, LocalDate actualReturnDate) {
+    private BigDecimal calculateFine(
+            Loan loan,
+            LocalDate actualReturnDate,
+            BigDecimal finePerDay
+    ) {
 
         if (!actualReturnDate.isAfter(loan.getDueDate())) {
             return BigDecimal.ZERO;
@@ -99,8 +110,7 @@ public class LoanService {
         return finePerDay.multiply(BigDecimal.valueOf(overdueDays));
     }
 
-//    Get All Loans
-
+    // Get All Loans
     @Transactional(readOnly = true)
     public Page<LoanResponse> getAllLoans(
             String search,
@@ -115,47 +125,80 @@ public class LoanService {
         }
 
         logger.info("Fetching loans with search keyword: {}", search);
+
         return loans.map(this::toLoanResponse);
     }
 
+    // Borrow Book
     @Transactional
-    public LoanResponse borrowBook(LoanRequest request){
-            Member member = getMemberOrThrow(request.getMemberId());
-            Book book = getBookOrThrow(request.getBookId());
-            validateBorrowingLimit(member.getMemberId(), borrowingLimit);
+    public LoanResponse borrowBook(LoanRequest request) {
 
-            int updateRows = bookRepository.decreaseAvailableCopies(book.getBookId());
+        LoanConfiguration configuration =
+                configurationService.getConfiguration();
 
-            if (updateRows == 0 ) {
-                throw new BusinessRuleException(
-                        "Book is not Available for Borrowing"
-                );
-            }
+        Member member = getMemberOrThrow(request.getMemberId());
+        Book book = getBookOrThrow(request.getBookId());
 
-                Loan loan = new Loan();
-                loan.setMember(member);
-                loan.setBook(book);
-                loan.setIssueDate(LocalDate.now());
-                loan.setDueDate(LocalDate.now().plusDays(loanPeriodDays));
-                loan.setStatus(Loan.Status.ACTIVE);
+        validateBorrowingLimit(
+                member.getMemberId(),
+                configuration.getBorrowingLimit()
+        );
 
-                Loan savedLoan = loanRepository.save(loan);
+        int updateRows =
+                bookRepository.decreaseAvailableCopies(book.getBookId());
 
-        logger.info("Processing book borrowing request for member ID: {} and book ID: {}",
-                request.getMemberId(), request.getBookId());
-                return toLoanResponse(savedLoan);
+        if (updateRows == 0) {
+            throw new BusinessRuleException(
+                    "Book is not Available for Borrowing"
+            );
+        }
 
+        LocalDate issueDate = LocalDate.now();
+
+        Loan loan = new Loan();
+
+        loan.setMember(member);
+        loan.setBook(book);
+        loan.setIssueDate(issueDate);
+        loan.setDueDate(
+                issueDate.plusDays(configuration.getPeriodDays())
+        );
+        loan.setStatus(Loan.Status.ACTIVE);
+
+        Loan savedLoan = loanRepository.save(loan);
+
+        logger.info(
+                "Processing book borrowing request for member ID: {} and book ID: {}",
+                request.getMemberId(),
+                request.getBookId()
+        );
+
+        return toLoanResponse(savedLoan);
     }
 
+    // Return Book
     @Transactional
-    public LoanResponse returnBook(Long loanId){
-        Loan loan = loanRepository.findByLoanIdAndStatus(loanId, Loan.Status.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Active Loan Not Found with these Id: "+loanId
-                ));
+    public LoanResponse returnBook(Long loanId) {
+
+        Loan loan = loanRepository.findByLoanIdAndStatus(
+                        loanId,
+                        Loan.Status.ACTIVE
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Active Loan Not Found with these Id: " + loanId
+                        ));
+
+        LoanConfiguration configuration =
+                configurationService.getConfiguration();
 
         LocalDate actualReturnDate = LocalDate.now();
-        BigDecimal fine = calculateFine(loan, actualReturnDate);
+
+        BigDecimal fine = calculateFine(
+                loan,
+                actualReturnDate,
+                configuration.getFinePerDay()
+        );
 
         int updatedRows = bookRepository.increaseAvailableCopies(
                 loan.getBook().getBookId()
@@ -166,34 +209,48 @@ public class LoanService {
                     "Book availability could not be updated."
             );
         }
-        loan.setReturnDate(actualReturnDate);
 
+        loan.setReturnDate(actualReturnDate);
         loan.setFine(fine);
         loan.setStatus(Loan.Status.RETURNED);
 
-        Loan returnLoan = loanRepository.save(loan);
-        logger.info("Processing book return request for loan ID: {}", loanId);
-        return toLoanResponse(returnLoan);
+        Loan returnedLoan = loanRepository.save(loan);
 
+        logger.info(
+                "Processing book return request for loan ID: {}",
+                loanId
+        );
+
+        return toLoanResponse(returnedLoan);
     }
 
-    //get All Overdue Loans
+    // Get All Overdue Loans
     @Transactional(readOnly = true)
-    public List<LoanResponse> getOverDueLoans(){
-        List<Loan> overDueLoans =
+    public List<LoanResponse> getOverDueLoans() {
+
+        List<Loan> overdueLoans =
                 loanRepository.findOverdueLoans(Loan.Status.ACTIVE);
 
-        logger.info("Fetching Overdue Loans. Total Found :{}", overDueLoans.size());
+        logger.info(
+                "Fetching Overdue Loans. Total Found: {}",
+                overdueLoans.size()
+        );
 
-        return overDueLoans.stream()
+        return overdueLoans.stream()
                 .map(this::toLoanResponse)
                 .collect(Collectors.toList());
     }
 
+    // Get My Loans
     @Transactional(readOnly = true)
-    public  List<LoanResponse> getMyLoans(String email){
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(()-> new ResourceNotFoundException("Member not found with email"+email));
+    public List<LoanResponse> getMyLoans(String email) {
+
+        Member member = memberRepository.findByUser_Email(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Member not found with email: " + email
+                        ));
+
         return loanRepository
                 .findByMember_MemberId(member.getMemberId())
                 .stream()
@@ -201,10 +258,9 @@ public class LoanService {
                 .collect(Collectors.toList());
     }
 
-
-
-
+    // Convert Loan Entity to Response DTO
     private LoanResponse toLoanResponse(Loan loan) {
+
         LoanResponse response = new LoanResponse();
 
         response.setLoanId(loan.getLoanId());
@@ -212,6 +268,7 @@ public class LoanService {
         response.setMemberId(
                 loan.getMember().getMemberId()
         );
+
         response.setMemberName(
                 loan.getMember().getName()
         );
@@ -219,6 +276,7 @@ public class LoanService {
         response.setBookId(
                 loan.getBook().getBookId()
         );
+
         response.setBookTitle(
                 loan.getBook().getTitle()
         );
@@ -231,5 +289,4 @@ public class LoanService {
 
         return response;
     }
-
 }

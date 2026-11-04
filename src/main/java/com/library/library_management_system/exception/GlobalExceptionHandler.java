@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,6 +29,20 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("message", exception.getMessage()));
+    }
+
+    // Authorization denied (insufficient permissions)
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAuthorizationDenied(
+            AuthorizationDeniedException exception) {
+
+        logger.warn("Authorization denied: {}", exception.getMessage());
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of(
+                        "message",
+                        "You do not have permission to perform this action."
+                ));
     }
 
     // Duplicate resource
